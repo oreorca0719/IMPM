@@ -98,7 +98,10 @@ docker compose -f deploy/docker-compose.yml up --build   # http://localhost
 | P5 | 칸반 보드 · DnD · 낙관적 업데이트 | ✅ |
 | P6 | 이슈 상세 Drawer · 댓글/활동 탭 | ✅ |
 | P7 | 에픽 뷰 · 대시보드 시각화 | ✅ |
-| P8 | EC2 배포 · Nginx · S3 백업 | ⏳ (PM 확인 필요, 14장) |
+| P8 | **App Runner 배포** · CodeBuild · litestream(S3) | ✅ [배포 문서](deploy/apprunner/README.md) |
+
+**라이브**: https://a4xrpcaxpu.ap-northeast-1.awsapprunner.com (App Runner, ap-northeast-1)
+재배포: `bash deploy/apprunner/redeploy.sh`
 
 ## 라이선스 / 내부용
 
