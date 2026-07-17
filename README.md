@@ -26,8 +26,8 @@
 | 백엔드 | Python 3.12 · FastAPI · SQLModel · Alembic · aiosqlite |
 | 인증 | python-jose(JWT) + passlib[bcrypt] |
 | 프론트 | Vue 3(Composition API) · Vite · Pinia · Vue Router · Tailwind · Chart.js · vuedraggable |
-| DB | SQLite (WAL 모드) |
-| 인프라 | AWS EC2 t2.micro · Docker Compose · Nginx · Let's Encrypt · S3 백업 |
+| DB | 로컬: SQLite(WAL) · 배포: **RDS PostgreSQL** (SQLModel/SQLAlchemy로 양쪽 지원) |
+| 인프라 | AWS App Runner · CodeBuild(이미지 빌드) · ECR · RDS PostgreSQL · VPC 커넥터 |
 
 ## 디렉터리
 
@@ -98,7 +98,7 @@ docker compose -f deploy/docker-compose.yml up --build   # http://localhost
 | P5 | 칸반 보드 · DnD · 낙관적 업데이트 | ✅ |
 | P6 | 이슈 상세 Drawer · 댓글/활동 탭 | ✅ |
 | P7 | 에픽 뷰 · 대시보드 시각화 | ✅ |
-| P8 | **App Runner 배포** · CodeBuild · litestream(S3) | ✅ [배포 문서](deploy/apprunner/README.md) |
+| P8 | **App Runner 배포** · CodeBuild · **RDS PostgreSQL** | ✅ [배포 문서](deploy/apprunner/README.md) |
 
 **라이브**: https://a4xrpcaxpu.ap-northeast-1.awsapprunner.com (App Runner, ap-northeast-1)
 재배포: `bash deploy/apprunner/redeploy.sh`

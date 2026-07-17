@@ -1,25 +1,30 @@
 # IMPM — AWS App Runner 배포
 
 STRIPE 프로젝트 관리 사이트(IMPM)를 AWS App Runner에 단일 컨테이너로 배포합니다.
-로컬 Docker 없이 **CodeBuild**로 이미지를 빌드하고, **litestream**으로 SQLite를 S3에 실시간 복제해 영속화합니다.
+로컬 Docker 없이 **CodeBuild**로 이미지를 빌드하고, DB는 **RDS PostgreSQL**(VPC 커넥터로 프라이빗 접속)을 사용합니다.
 
 ## 아키텍처
 
 ```
-CodeBuild(이미지 빌드) → ECR → App Runner (FastAPI + Vue SPA, 1 인스턴스)
-                                      │
-                                      └─ litestream ⇄ S3 (SQLite 실시간 복제/복원)
+CodeBuild(이미지 빌드) → ECR → App Runner (FastAPI + Vue SPA)
+                                     │  VPC Connector(egress)
+                                     ▼
+                             RDS PostgreSQL (프라이빗, db.t4g.micro)
 ```
 
-- App Runner 컨테이너는 디스크가 비영속 → 부팅 시 S3에서 DB 복원, 종료 전까지 S3로 복제.
-- 반드시 **1 인스턴스**(오토스케일링 min=max=1)로 운영 — SQLite 단일 라이터 제약.
+- App Runner 컨테이너가 부팅 시 `scripts.seed`(init_db=스키마 생성 + 멱등 시드)를 실행한 뒤 uvicorn 기동.
+- DB는 관리형 RDS라 영속·자동 백업(보존 7일). App Runner 재배포/재시작과 무관하게 데이터 유지.
+- App Runner는 VPC 커넥터를 통해 프라이빗 RDS(5432)에 접속(외부 미노출).
 
 ## 생성된 리소스 (리전 ap-northeast-1)
 
 | 종류 | 이름/식별자 |
 |---|---|
 | ECR 레포 | `impm` |
-| S3 (DB 복제) | `impm-db-333347414948` |
+| RDS PostgreSQL | `impm-pg` (db.t4g.micro, DB명 `impm`, user `impm`) |
+| VPC 커넥터 | `impm-conn` (기본 VPC 3개 서브넷) |
+| 보안그룹 | `impm-apprunner-conn`(커넥터), `impm-rds`(5432 ← 커넥터 SG만) |
+| DB 서브넷 그룹 | `impm-db-subnets` |
 | S3 (빌드 소스) | `impm-src-333347414948` |
 | CodeBuild 프로젝트 | `impm-build` |
 | IAM 역할 | `impm-codebuild-role`, `impm-apprunner-ecr`, `impm-apprunner-instance` |
@@ -28,47 +33,44 @@ CodeBuild(이미지 빌드) → ECR → App Runner (FastAPI + Vue SPA, 1 인스�
 
 **서비스 URL**: https://a4xrpcaxpu.ap-northeast-1.awsapprunner.com
 
+> 참고: SQLite/litestream 구성에서 RDS로 이전 완료. 과거 `impm-db-333347414948`(litestream S3) 버킷은
+> 더 이상 사용하지 않으며 삭제해도 됩니다. RDS는 관리형 백업을 사용하므로 별도 S3 백업 불필요.
+
 ## 재배포
 
 코드 변경 후:
-
 ```bash
-# 프로젝트 루트에서
 bash deploy/apprunner/redeploy.sh
 ```
+(소스 zip 업로드 → CodeBuild → App Runner `start-deployment` 으로 :latest 재배포)
 
-수동으로 하려면:
-```bash
-git archive --format=zip -o /tmp/source.zip HEAD
-aws s3 cp /tmp/source.zip s3://impm-src-333347414948/source.zip --region ap-northeast-1
-aws codebuild start-build --project-name impm-build --region ap-northeast-1
-# 빌드 완료(SUCCEEDED) 후 App Runner 재배포(:latest pull)
-aws apprunner start-deployment \
-  --service-arn arn:aws:apprunner:ap-northeast-1:333347414948:service/impm/81282104b9f2464ba6de08b43d4581e2 \
-  --region ap-northeast-1
-```
+## 환경변수 (App Runner 서비스)
 
-## 환경변수 (App Runner 서비스에 설정됨)
+`DATABASE_URL`(`postgresql+asyncpg://impm:***@impm-pg...:5432/impm`), `JWT_SECRET`,
+`JWT_EXPIRE_HOURS`, `CORS_ORIGINS`, `BOT_PASSWORD`, `SEED_PASSWORD`.
+값 변경: `aws apprunner update-service` 로 `RuntimeEnvironmentVariables` 갱신.
 
-`DATABASE_URL`(컨테이너 내 SQLite 절대경로), `JWT_SECRET`, `JWT_EXPIRE_HOURS`,
-`CORS_ORIGINS`, `LITESTREAM_BUCKET`, `AWS_REGION`, `BOT_PASSWORD`, `SEED_PASSWORD`.
-비밀 값 변경: `aws apprunner update-service ...` 로 `RuntimeEnvironmentVariables` 갱신.
+## 스케일링
+
+현재 오토스케일링 `impm-single`(min=max=1)로 1인스턴스 고정. RDS를 쓰므로 이제
+다중 인스턴스로 확장 가능 — 새 AutoScalingConfiguration(예: min=1,max=3)을 만들어
+서비스에 연결하면 됨. (4인 규모에선 1인스턴스로 충분)
 
 ## 비용 (대략)
 
-- **App Runner**: 1 인스턴스(1 vCPU/2GB) 상시 → 월 $5~수십 달러대(활성 사용량에 따라).
-- **RDS 미사용** — SQLite+S3라 DB 비용 거의 0(S3 저장·요청 몇 센트).
-- **CodeBuild**: 빌드 시에만 과금(분당, 소액). **ECR/S3**: 저장 소액.
+- **App Runner**: 1 인스턴스(1 vCPU/2GB) 상시 → 월 $5~수십 달러대(사용량 의존).
+- **RDS db.t4g.micro**: 12개월 무료티어(월 750시간), 이후 대략 월 $12~15 + 스토리지.
+- **CodeBuild/ECR/S3(소스)**: 소액.
 
 ## 백업/복구
 
-litestream이 S3(`impm-db-.../impm-db/`)에 스냅샷+WAL을 지속 저장.
-장애 시 새 컨테이너가 부팅하며 자동 복원됨. 수동 복원:
+RDS 자동 백업(보존 7일) + 스냅샷. 수동 스냅샷:
 ```bash
-litestream restore -o restored.db -config deploy/apprunner/litestream.yml /app/data/impm.db
+aws rds create-db-snapshot --db-instance-identifier impm-pg --db-snapshot-identifier impm-manual-YYYYMMDD --region ap-northeast-1
 ```
 
 ## 주의
 
-- App Runner는 **절대 2인스턴스 이상으로 스케일하면 안 됨**(SQLite 손상). 오토스케일링 `impm-single`로 고정돼 있음.
-- 초기 계정 비밀번호(사람용 `SEED_PASSWORD`)는 배포 후 각자 변경 안내 필요(문서 14장-6, 변경 API는 확장 시).
+- RDS는 **프라이빗**(publicly-accessible=false) — App Runner VPC 커넥터를 통해서만 접근.
+- 비밀번호/DATABASE_URL 등 시크릿은 App Runner env 및 로컬 배포 노트에만 존재(레포 커밋 금지).
+- 초기 계정 비밀번호(`SEED_PASSWORD`)는 배포 후 변경 안내 필요(비번 변경 API는 확장 시).
