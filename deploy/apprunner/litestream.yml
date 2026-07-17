@@ -1,8 +1,0 @@
-# litestream — SQLite 파일을 S3 로 실시간 복제. 환경변수는 App Runner 에서 주입.
-dbs:
-  - path: /app/data/impm.db
-    replicas:
-      - type: s3
-        bucket: ${LITESTREAM_BUCKET}
-        path: impm-db
-        region: ${AWS_REGION}

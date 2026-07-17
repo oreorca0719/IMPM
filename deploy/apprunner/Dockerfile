@@ -1,4 +1,4 @@
-# IMPM App Runner 단일 이미지 — Vue SPA 빌드 + FastAPI + litestream(SQLite→S3)
+# IMPM App Runner 단일 이미지 — Vue SPA 빌드 + FastAPI (DB는 RDS PostgreSQL)
 # CodeBuild 에서 빌드하여 ECR 로 푸시. 컨텍스트는 레포 루트.
 
 # ── Stage 1: 프론트 빌드 ─────────────────────────────
@@ -9,12 +9,8 @@ RUN npm install
 COPY frontend/ ./
 RUN npm run build          # → /fe/dist
 
-# ── Stage 2: 백엔드 런타임 + litestream ───────────────
+# ── Stage 2: 백엔드 런타임 ───────────────────────────
 FROM python:3.12-slim
-
-# litestream 설치(SQLite → S3 실시간 복제/복원)
-ADD https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-amd64.tar.gz /tmp/ls.tar.gz
-RUN tar -xzf /tmp/ls.tar.gz -C /usr/local/bin litestream && rm /tmp/ls.tar.gz
 
 WORKDIR /app
 COPY backend/ ./
@@ -23,10 +19,8 @@ RUN pip install --no-cache-dir .
 # 빌드된 프론트 정적 파일
 COPY --from=fe /fe/dist /app/static
 
-# litestream 설정 + 엔트리포인트
-COPY deploy/apprunner/litestream.yml /etc/litestream.yml
 COPY deploy/apprunner/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh && mkdir -p /app/data
+RUN chmod +x /entrypoint.sh
 
 ENV FRONTEND_DIST=/app/static \
     PYTHONUNBUFFERED=1

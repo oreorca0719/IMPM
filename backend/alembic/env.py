@@ -12,8 +12,12 @@ from app.core.config import settings
 
 config = context.config
 
-# 비동기 URL(sqlite+aiosqlite)을 동기(sqlite)로 변환 — 마이그레이션은 동기 실행
-sync_url = settings.database_url.replace("+aiosqlite", "")
+# 비동기 URL을 동기 드라이버로 변환 — 마이그레이션은 동기 실행
+#   sqlite+aiosqlite  -> sqlite
+#   postgresql+asyncpg -> postgresql+psycopg2
+sync_url = settings.database_url.replace("+aiosqlite", "").replace(
+    "+asyncpg", "+psycopg2"
+)
 config.set_main_option("sqlalchemy.url", sync_url)
 
 if config.config_file_name is not None:
