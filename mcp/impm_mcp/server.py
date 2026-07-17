@@ -1,0 +1,282 @@
+"""IMPM MCP 서버 — Claude Code 가 STRIPE 프로젝트를 관리하도록 도구를 노출.
+
+프로젝트가 하나면 대부분의 도구에서 project_id 를 생략할 수 있다(자동 해석).
+쓰기 도구의 결과는 갱신된 객체를 그대로 반환한다.
+"""
+from __future__ import annotations
+
+from typing import Any
+
+from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
+
+from impm_mcp.client import ImpmClient, ImpmError
+
+mcp = FastMCP("impm")
+client = ImpmClient()
+
+RO = ToolAnnotations(readOnlyHint=True, openWorldHint=True)
+WRITE = ToolAnnotations(readOnlyHint=False, openWorldHint=True)
+DESTRUCTIVE = ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=True)
+
+
+async def _resolve_project(project_id: int | None) -> int:
+    if project_id:
+        return project_id
+    projects = await client.get("/projects")
+    if not projects:
+        raise ImpmError("프로젝트가 없습니다. 먼저 프로젝트를 생성하세요.")
+    return projects[0]["id"]
+
+
+def _clean(payload: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in payload.items() if v is not None}
+
+
+# ─────────────────────────── 조회(read-only) ───────────────────────────
+
+
+@mcp.tool(annotations=RO)
+async def impm_whoami() -> dict:
+    """현재 MCP 봇 계정 정보를 반환한다(연결 확인용)."""
+    return await client.get("/auth/me")
+
+
+@mcp.tool(annotations=RO)
+async def impm_list_projects() -> list:
+    """모든 프로젝트 목록(id, key, name)을 반환한다."""
+    return await client.get("/projects")
+
+
+@mcp.tool(annotations=RO)
+async def impm_list_users() -> list:
+    """담당자 지정에 쓸 수 있는 사용자 목록(id, name, email)을 반환한다."""
+    return await client.get("/users")
+
+
+@mcp.tool(annotations=RO)
+async def impm_list_epics(project_id: int | None = None) -> list:
+    """에픽 목록을 진행률 요약(done/total/percent)과 함께 반환한다."""
+    pid = await _resolve_project(project_id)
+    return await client.get(f"/projects/{pid}/epics")
+
+
+@mcp.tool(annotations=RO)
+async def impm_list_issues(
+    project_id: int | None = None,
+    status: str | None = None,
+    assignee_id: int | None = None,
+    epic_id: int | None = None,
+    q: str | None = None,
+) -> list:
+    """이슈 목록을 조회한다.
+
+    status: TODO|IN_PROGRESS|DONE, assignee_id/epic_id: 정수 id, q: 제목 부분검색.
+    """
+    pid = await _resolve_project(project_id)
+    params = _clean(
+        {"status": status, "assignee_id": assignee_id, "epic_id": epic_id, "q": q}
+    )
+    return await client.get(f"/projects/{pid}/issues", params=params)
+
+
+@mcp.tool(annotations=RO)
+async def impm_get_issue(issue_id: int) -> dict:
+    """이슈 상세(라벨·댓글 수 포함)를 반환한다."""
+    return await client.get(f"/issues/{issue_id}")
+
+
+@mcp.tool(annotations=RO)
+async def impm_list_comments(issue_id: int) -> list:
+    """이슈의 댓글 목록을 반환한다."""
+    return await client.get(f"/issues/{issue_id}/comments")
+
+
+@mcp.tool(annotations=RO)
+async def impm_get_issue_activity(issue_id: int) -> list:
+    """이슈의 활동 로그(시간 역순)를 반환한다."""
+    return await client.get(f"/issues/{issue_id}/activity")
+
+
+@mcp.tool(annotations=RO)
+async def impm_list_labels(project_id: int | None = None) -> list:
+    """프로젝트의 라벨 목록을 반환한다."""
+    pid = await _resolve_project(project_id)
+    return await client.get(f"/projects/{pid}/labels")
+
+
+@mcp.tool(annotations=RO)
+async def impm_get_dashboard(project_id: int | None = None) -> dict:
+    """진행률 대시보드 집계(상태별 수·에픽 진행률·담당자 부하·마감 임박)를 반환한다."""
+    pid = await _resolve_project(project_id)
+    return await client.get(f"/projects/{pid}/dashboard")
+
+
+# ─────────────────────────── 이슈 쓰기 ───────────────────────────
+
+
+@mcp.tool(annotations=WRITE)
+async def impm_create_issue(
+    title: str,
+    project_id: int | None = None,
+    description: str | None = None,
+    epic_id: int | None = None,
+    status: str | None = None,
+    priority: str | None = None,
+    assignee_id: int | None = None,
+    due_date: str | None = None,
+) -> dict:
+    """이슈를 생성한다. 제목만 필수.
+
+    status: TODO|IN_PROGRESS|DONE(기본 TODO), priority: LOW|MEDIUM|HIGH|URGENT(기본 MEDIUM),
+    due_date: 'YYYY-MM-DD'. 키는 자동 채번되며 활동로그(created)가 남는다.
+    """
+    pid = await _resolve_project(project_id)
+    body = _clean(
+        {
+            "title": title,
+            "description": description,
+            "epic_id": epic_id,
+            "status": status,
+            "priority": priority,
+            "assignee_id": assignee_id,
+            "due_date": due_date,
+        }
+    )
+    return await client.post(f"/projects/{pid}/issues", json=body)
+
+
+@mcp.tool(annotations=WRITE)
+async def impm_update_issue(
+    issue_id: int,
+    title: str | None = None,
+    description: str | None = None,
+    status: str | None = None,
+    priority: str | None = None,
+    assignee_id: int | None = None,
+    due_date: str | None = None,
+    epic_id: int | None = None,
+) -> dict:
+    """이슈 필드를 수정한다(전달한 값만 반영).
+
+    상태/담당자/마감일/우선순위/에픽 변경 시 활동로그가 자동 기록된다.
+    """
+    body = _clean(
+        {
+            "title": title,
+            "description": description,
+            "status": status,
+            "priority": priority,
+            "assignee_id": assignee_id,
+            "due_date": due_date,
+            "epic_id": epic_id,
+        }
+    )
+    if not body:
+        raise ImpmError("수정할 필드를 최소 1개 전달하세요.")
+    return await client.patch(f"/issues/{issue_id}", json=body)
+
+
+@mcp.tool(annotations=WRITE)
+async def impm_move_issue(
+    issue_id: int, status: str, board_order: float | None = None
+) -> dict:
+    """칸반 상태를 이동한다. board_order 를 생략하면 대상 컬럼 맨 끝에 배치한다."""
+    if board_order is None:
+        issue = await client.get(f"/issues/{issue_id}")
+        peers = await client.get(
+            f"/projects/{issue['project_id']}/issues", params={"status": status}
+        )
+        board_order = (max((p["board_order"] for p in peers), default=0.0)) + 1.0
+    return await client.patch(
+        f"/issues/{issue_id}/move", json={"status": status, "board_order": board_order}
+    )
+
+
+@mcp.tool(annotations=DESTRUCTIVE)
+async def impm_delete_issue(issue_id: int) -> dict:
+    """이슈를 삭제한다(되돌릴 수 없음). 댓글·활동·라벨 연결도 함께 제거."""
+    await client.delete(f"/issues/{issue_id}")
+    return {"deleted": issue_id}
+
+
+# ─────────────────────────── 에픽 쓰기 ───────────────────────────
+
+
+@mcp.tool(annotations=WRITE)
+async def impm_create_epic(
+    title: str,
+    project_id: int | None = None,
+    description: str | None = None,
+    owner_id: int | None = None,
+    status: str | None = None,
+) -> dict:
+    """에픽을 생성한다(키 자동 채번, 이슈와 번호 공간 공유)."""
+    pid = await _resolve_project(project_id)
+    body = _clean(
+        {"title": title, "description": description, "owner_id": owner_id, "status": status}
+    )
+    return await client.post(f"/projects/{pid}/epics", json=body)
+
+
+@mcp.tool(annotations=WRITE)
+async def impm_update_epic(
+    epic_id: int,
+    title: str | None = None,
+    description: str | None = None,
+    status: str | None = None,
+    owner_id: int | None = None,
+) -> dict:
+    """에픽을 수정한다(전달한 값만 반영)."""
+    body = _clean(
+        {"title": title, "description": description, "status": status, "owner_id": owner_id}
+    )
+    if not body:
+        raise ImpmError("수정할 필드를 최소 1개 전달하세요.")
+    return await client.patch(f"/epics/{epic_id}", json=body)
+
+
+@mcp.tool(annotations=DESTRUCTIVE)
+async def impm_delete_epic(epic_id: int) -> dict:
+    """에픽을 삭제한다. 소속 이슈는 삭제되지 않고 에픽에서 분리된다."""
+    await client.delete(f"/epics/{epic_id}")
+    return {"deleted": epic_id}
+
+
+# ─────────────────────────── 댓글 · 라벨 ───────────────────────────
+
+
+@mcp.tool(annotations=WRITE)
+async def impm_add_comment(issue_id: int, body: str) -> dict:
+    """이슈에 댓글을 작성한다(작성자는 봇 계정)."""
+    return await client.post(f"/issues/{issue_id}/comments", json={"body": body})
+
+
+@mcp.tool(annotations=WRITE)
+async def impm_create_label(
+    name: str, project_id: int | None = None, color: str | None = None
+) -> dict:
+    """프로젝트에 라벨을 생성한다. color 는 HEX(예: '#EF4444')."""
+    pid = await _resolve_project(project_id)
+    body = _clean({"name": name, "color": color})
+    return await client.post(f"/projects/{pid}/labels", json=body)
+
+
+@mcp.tool(annotations=WRITE)
+async def impm_add_label_to_issue(issue_id: int, label_id: int) -> dict:
+    """이슈에 라벨을 부착한다."""
+    return await client.post(f"/issues/{issue_id}/labels", json={"label_id": label_id})
+
+
+@mcp.tool(annotations=WRITE)
+async def impm_remove_label_from_issue(issue_id: int, label_id: int) -> dict:
+    """이슈에서 라벨을 제거한다."""
+    return await client.delete(f"/issues/{issue_id}/labels/{label_id}")
+
+
+def main() -> None:
+    mcp.run()
+
+
+if __name__ == "__main__":
+    main()

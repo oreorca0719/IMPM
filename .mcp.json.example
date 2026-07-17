@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "impm": {
+      "command": "REPLACE_WITH_ABS_PATH/mcp/.venv/Scripts/python.exe",
+      "args": ["-m", "impm_mcp.server"],
+      "env": {
+        "IMPM_BASE_URL": "http://localhost:8000",
+        "IMPM_BOT_EMAIL": "bot@impm.team",
+        "IMPM_BOT_PASSWORD": "${IMPM_BOT_PASSWORD}"
+      }
+    }
+  }
+}

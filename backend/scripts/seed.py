@@ -26,7 +26,12 @@ SEED_USERS = [
     {"email": "mjs@impm.team", "name": "문준석", "role": "member"},  # 기획·의사결정
     {"email": "cjh@impm.team", "name": "최재헌", "role": "member"},  # 문서·QA·테스트
     {"email": "reserve@impm.team", "name": "예비멤버", "role": "member"},
+    # Claude Code 전용 봇 계정 — 활동로그에서 'claude-bot' 으로 사람과 구분됨.
+    # 비밀번호는 BOT_PASSWORD env(없으면 SEED_PASSWORD)로 지정하며 MCP 서버와 동일해야 함.
+    {"email": "bot@impm.team", "name": "claude-bot", "role": "bot"},
 ]
+
+BOT_PASSWORD = os.getenv("BOT_PASSWORD", SEED_PASSWORD)
 
 SEED_PROJECT = {
     "key": "STR",
@@ -44,12 +49,13 @@ async def run() -> None:
             if existing:
                 print(f"  = 사용자 존재: {u['email']}")
                 continue
+            pw = BOT_PASSWORD if u["role"] == "bot" else SEED_PASSWORD
             session.add(
                 User(
                     email=u["email"],
                     name=u["name"],
                     role=u["role"],
-                    password_hash=hash_password(SEED_PASSWORD),
+                    password_hash=hash_password(pw),
                 )
             )
             print(f"  + 사용자 생성: {u['name']} <{u['email']}>")
