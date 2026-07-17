@@ -38,11 +38,10 @@ CodeBuild(이미지 빌드) → ECR → App Runner (FastAPI + Vue SPA)
 
 ## 재배포
 
-코드 변경 후:
-```bash
-bash deploy/apprunner/redeploy.sh
-```
-(소스 zip 업로드 → CodeBuild → App Runner `start-deployment` 으로 :latest 재배포)
+⚠️ App Runner 가 `:latest` 를 안정적으로 다시 pull 하지 않는 경우가 있어(태그 캐싱),
+새 코드는 **이미지 digest 를 명시**해 `update-service` 로 배포해야 확실히 반영됩니다.
+빌드 후 `aws ecr describe-images ... imageTag=latest --query imageDetails[0].imageDigest` 로
+digest 를 얻어 `ImageIdentifier` 를 `...impm@<digest>` 로 지정하세요(현재 서비스도 digest 고정 상태).
 
 ## 환경변수 (App Runner 서비스)
 
