@@ -11,6 +11,8 @@ import os
 
 import httpx
 
+from impm_mcp.context import actor_email
+
 
 class ImpmError(Exception):
     """IMPM API 오류 — 메시지에 상태코드/detail 포함."""
@@ -41,7 +43,12 @@ class ImpmClient:
         self._token = resp.json()["access_token"]
 
     def _headers(self) -> dict:
-        return {"Authorization": f"Bearer {self._token}"} if self._token else {}
+        h = {"Authorization": f"Bearer {self._token}"} if self._token else {}
+        # 현재 요청을 보낸 팀원으로 대행(봇 계정일 때 백엔드가 신뢰)
+        who = actor_email.get()
+        if who:
+            h["X-Act-As"] = who
+        return h
 
     async def request(self, method: str, path: str, **kwargs):
         if self._token is None:

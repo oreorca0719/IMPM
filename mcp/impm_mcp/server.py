@@ -15,9 +15,12 @@ from mcp.types import ToolAnnotations
 from impm_mcp.client import ImpmClient, ImpmError
 
 # 원격 호스팅(App Runner) 시 프록시가 Host 를 바꾸므로 DNS 리바인딩 보호를 끈다.
-# 실제 접근 제어는 Bearer 토큰(MCP_AUTH_TOKEN) 미들웨어가 담당.
+# 실제 접근 제어는 Bearer 토큰 미들웨어가 담당.
+# stateless_http=True: 요청 인라인 처리 → 미들웨어가 설정한 contextvar(actor_email)가
+# 도구 실행까지 전파되어 팀원별 대행(X-Act-As)이 동작한다.
 mcp = FastMCP(
     "impm",
+    stateless_http=True,
     transport_security=TransportSecuritySettings(
         enable_dns_rebinding_protection=False
     ),
@@ -287,12 +290,34 @@ async def impm_remove_label_from_issue(issue_id: int, label_id: int) -> dict:
 # 팀원이 각자 Claude 에서 URL+토큰으로 연결하도록 App Runner 에 호스팅할 때 사용.
 # uvicorn 진입점:  uvicorn impm_mcp.server:http_app --host 0.0.0.0 --port 8000
 #   MCP 엔드포인트: /mcp  ·  헬스체크: /health(무인증)
+import json  # noqa: E402
+
 from starlette.middleware.base import BaseHTTPMiddleware  # noqa: E402
 from starlette.requests import Request  # noqa: E402
 from starlette.responses import JSONResponse, Response  # noqa: E402
 from starlette.routing import Route  # noqa: E402
 
+from impm_mcp.context import actor_email  # noqa: E402
+
+# 팀원별 토큰 맵: JSON {"<token>": "<email>", ...}. 각 팀원은 자기 토큰으로 붙고,
+# 그 사람 IMPM 계정으로 활동로그가 귀속된다(백엔드 X-Act-As 대행).
+_raw_user_tokens = os.getenv("MCP_USER_TOKENS", "")
+try:
+    USER_TOKENS: dict[str, str] = json.loads(_raw_user_tokens) if _raw_user_tokens else {}
+except Exception:
+    USER_TOKENS = {}
+
+# (선택) 공용 토큰 — 대행 없이 봇(claude-bot) 계정으로 동작
 MCP_AUTH_TOKEN = os.getenv("MCP_AUTH_TOKEN", "")
+
+
+def _resolve_token(token: str) -> tuple[bool, str | None]:
+    """(인증성공?, 대행이메일 or None). None = 봇 그대로."""
+    if token and token in USER_TOKENS:
+        return True, USER_TOKENS[token]
+    if MCP_AUTH_TOKEN and token == MCP_AUTH_TOKEN:
+        return True, None
+    return False, None
 
 
 async def _health(_request: Request):
@@ -300,14 +325,17 @@ async def _health(_request: Request):
 
 
 class BearerAuthMiddleware(BaseHTTPMiddleware):
-    """MCP 경로에 대해 Authorization: Bearer <MCP_AUTH_TOKEN> 요구. /health 는 예외."""
+    """MCP 경로에 Bearer 토큰 요구(팀원별 토큰 또는 공용 토큰). /health 는 예외."""
 
     async def dispatch(self, request: Request, call_next):
         if request.url.path.rstrip("/") == "/health":
             return await call_next(request)
-        if MCP_AUTH_TOKEN:
-            if request.headers.get("authorization", "") != f"Bearer {MCP_AUTH_TOKEN}":
-                return Response("Unauthorized", status_code=401)
+        auth = request.headers.get("authorization", "")
+        token = auth[7:] if auth[:7].lower() == "bearer " else ""
+        ok, email = _resolve_token(token)
+        if not ok:
+            return Response("Unauthorized", status_code=401)
+        actor_email.set(email)  # 요청 스코프 대행자 설정
         return await call_next(request)
 
 
