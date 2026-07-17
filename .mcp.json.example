@@ -1,12 +1,26 @@
 {
-  "mcpServers": {
-    "impm": {
-      "command": "REPLACE_WITH_ABS_PATH/mcp/.venv/Scripts/python.exe",
-      "args": ["-m", "impm_mcp.server"],
-      "env": {
-        "IMPM_BASE_URL": "http://localhost:8000",
-        "IMPM_BOT_EMAIL": "bot@impm.team",
-        "IMPM_BOT_PASSWORD": "${IMPM_BOT_PASSWORD}"
+  "_comment": "IMPM MCP 연결 예시. (A) 호스팅 HTTP(팀 공용, 권장) 또는 (B) 로컬 stdio 중 택1.",
+
+  "_A_hosted_http": {
+    "mcpServers": {
+      "impm": {
+        "type": "http",
+        "url": "https://<MCP-App-Runner-URL>/mcp",
+        "headers": { "Authorization": "Bearer <MCP_AUTH_TOKEN>" }
+      }
+    }
+  },
+
+  "_B_local_stdio": {
+    "mcpServers": {
+      "impm": {
+        "command": "<repo>/mcp/.venv/Scripts/python.exe",
+        "args": ["-m", "impm_mcp.server"],
+        "env": {
+          "IMPM_BASE_URL": "https://<IMPM-App-Runner-URL>",
+          "IMPM_BOT_EMAIL": "bot@impm.team",
+          "IMPM_BOT_PASSWORD": "${IMPM_BOT_PASSWORD}"
+        }
       }
     }
   }

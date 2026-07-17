@@ -52,14 +52,15 @@ Claude Code가 IMPM을 통해 STRIPE 프로젝트를 직접 관리할 수 있도
 전용 봇 계정(`bot@impm.team`)으로 동작하며, 봇의 변경은 활동 로그에 `claude-bot`으로 남아
 사람과 구분됩니다. 이슈/에픽 생성·이동·수정·삭제, 댓글, 라벨, 대시보드 조회 등 **21개 도구**를 노출합니다.
 
-설정: [mcp/README.md](mcp/README.md) — 요약하면
+**MCP 서버도 App Runner에 호스팅**돼 있어, 팀원은 설치 없이 URL+토큰으로 각자 연결합니다.
+
 ```bash
-cd mcp && python -m venv .venv && .venv\Scripts\activate && pip install -e .
-claude mcp add impm -e IMPM_BASE_URL=http://localhost:8000 \
-  -e IMPM_BOT_EMAIL=bot@impm.team -e IMPM_BOT_PASSWORD='<봇비번>' \
-  -- "<repo>/mcp/.venv/Scripts/python.exe" -m impm_mcp.server
+claude mcp add --transport http impm \
+  https://2gtp4nrtmn.ap-northeast-1.awsapprunner.com/mcp \
+  --header "Authorization: Bearer <MCP_AUTH_TOKEN>"
 ```
-그 후 Claude Code에서 "STRIPE 진행 중 이슈 알려줘", "STR-5 완료로 옮겨줘" 처럼 자연어로 관리할 수 있습니다.
+그 후 Claude에서 "STRIPE 진행 중 이슈 알려줘", "STR-5 완료로 옮겨줘" 처럼 자연어로 관리합니다.
+호스팅/재배포/토큰 회전: [deploy/apprunner-mcp/README.md](deploy/apprunner-mcp/README.md) · 로컬 stdio 실행: [mcp/README.md](mcp/README.md).
 
 ## 로컬 개발
 
