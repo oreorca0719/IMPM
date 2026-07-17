@@ -7,7 +7,9 @@ from sqlmodel import Field, SQLModel
 
 
 def now_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    # naive UTC — Postgres(TIMESTAMP WITHOUT TIME ZONE)와 SQLite 양쪽 호환.
+    # 모든 시각은 UTC 기준(naive)으로 저장한다.
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class User(SQLModel, table=True):
