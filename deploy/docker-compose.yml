@@ -1,0 +1,28 @@
+# IMPM 로컬/배포 공용 compose — backend(FastAPI) + frontend(nginx)
+# 사용: 프로젝트 루트에서  `docker compose -f deploy/docker-compose.yml up --build`
+services:
+  backend:
+    build:
+      context: ../backend
+    env_file:
+      - ../.env
+    environment:
+      # 컨테이너 내부 경로로 SQLite 파일 지정(볼륨 영속화)
+      DATABASE_URL: sqlite+aiosqlite:///./data/impm.db
+    volumes:
+      - impm-data:/app/data
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
+volumes:
+  impm-data:
