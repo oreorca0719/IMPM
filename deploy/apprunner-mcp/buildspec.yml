@@ -1,0 +1,19 @@
+version: 0.2
+
+# CodeBuild: deploy/apprunner-mcp/Dockerfile 를 빌드해 ECR(impm-mcp)로 푸시.
+# env(프로젝트에서 주입): AWS_REGION, AWS_ACCOUNT_ID, ECR_REPO(=impm-mcp), IMAGE_TAG
+phases:
+  pre_build:
+    commands:
+      - ECR_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO"
+      - echo "Logging in to ECR $ECR_URI"
+      - aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+  build:
+    commands:
+      - docker build -t "$ECR_URI:$IMAGE_TAG" -f deploy/apprunner-mcp/Dockerfile .
+      - docker tag "$ECR_URI:$IMAGE_TAG" "$ECR_URI:latest"
+  post_build:
+    commands:
+      - docker push "$ECR_URI:$IMAGE_TAG"
+      - docker push "$ECR_URI:latest"
+      - echo "Done. $ECR_URI:$IMAGE_TAG"

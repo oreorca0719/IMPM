@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
@@ -274,7 +275,47 @@ async def impm_remove_label_from_issue(issue_id: int, label_id: int) -> dict:
     return await client.delete(f"/issues/{issue_id}/labels/{label_id}")
 
 
+# ─────────────────────── HTTP 호스팅 (Streamable HTTP + 토큰 인증) ───────────────────────
+# 팀원이 각자 Claude 에서 URL+토큰으로 연결하도록 App Runner 에 호스팅할 때 사용.
+# uvicorn 진입점:  uvicorn impm_mcp.server:http_app --host 0.0.0.0 --port 8000
+#   MCP 엔드포인트: /mcp  ·  헬스체크: /health(무인증)
+from starlette.middleware.base import BaseHTTPMiddleware  # noqa: E402
+from starlette.requests import Request  # noqa: E402
+from starlette.responses import JSONResponse, Response  # noqa: E402
+from starlette.routing import Route  # noqa: E402
+
+MCP_AUTH_TOKEN = os.getenv("MCP_AUTH_TOKEN", "")
+
+
+async def _health(_request: Request):
+    return JSONResponse({"status": "ok", "service": "impm-mcp"})
+
+
+class BearerAuthMiddleware(BaseHTTPMiddleware):
+    """MCP 경로에 대해 Authorization: Bearer <MCP_AUTH_TOKEN> 요구. /health 는 예외."""
+
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path.rstrip("/") == "/health":
+            return await call_next(request)
+        if MCP_AUTH_TOKEN:
+            if request.headers.get("authorization", "") != f"Bearer {MCP_AUTH_TOKEN}":
+                return Response("Unauthorized", status_code=401)
+        return await call_next(request)
+
+
+def build_http_app():
+    app = mcp.streamable_http_app()  # /mcp 엔드포인트 + 세션 매니저 lifespan 포함
+    app.router.routes.append(Route("/health", _health))
+    app.add_middleware(BearerAuthMiddleware)
+    return app
+
+
+# uvicorn 이 import 하는 모듈 레벨 ASGI 앱
+http_app = build_http_app()
+
+
 def main() -> None:
+    """로컬 stdio 실행(각자 PC에서 Claude Code 가 spawn)."""
     mcp.run()
 
 
