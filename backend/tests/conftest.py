@@ -37,3 +37,26 @@ async def client(db_setup):
 async def session(db_setup):
     async with async_session_maker() as s:
         yield s
+
+
+@pytest_asyncio.fixture
+async def auth(client, session):
+    """인증된 사용자 + Authorization 헤더가 준비된 클라이언트 번들."""
+    from app.core.security import hash_password
+    from app.models import User
+
+    user = User(
+        email="kbj@impm.team",
+        name="김범준",
+        role="admin",
+        password_hash=hash_password("pw"),
+    )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+
+    resp = await client.post(
+        "/api/auth/login", json={"email": user.email, "password": "pw"}
+    )
+    headers = {"Authorization": f"Bearer {resp.json()['access_token']}"}
+    return {"client": client, "user": user, "headers": headers, "session": session}

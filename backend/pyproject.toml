@@ -30,6 +30,10 @@ dev = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
+filterwarnings = [
+    # raw text() DML 에는 session.execute() 가 정당함 — SQLModel 넛지 경고 무시
+    "ignore:.*You probably want to use .session.exec.*:DeprecationWarning",
+]
 
 [build-system]
 requires = ["setuptools>=68"]
