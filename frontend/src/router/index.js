@@ -1,17 +1,40 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 
-// P0: 최소 라우팅. 실제 화면(로그인/보드/백로그/에픽/대시보드)은 P4~P7에서 확장.
 const routes = [
   {
+    path: '/login',
+    name: 'login',
+    component: () => import('../views/LoginView.vue'),
+    meta: { public: true },
+  },
+  {
     path: '/',
-    name: 'home',
-    component: () => import('../views/HomeView.vue'),
+    component: () => import('../components/AppShell.vue'),
+    meta: { auth: true },
+    children: [
+      { path: '', redirect: '/board' },
+      { path: 'board', name: 'board', component: () => import('../views/BoardView.vue') },
+      { path: 'backlog', name: 'backlog', component: () => import('../views/BacklogView.vue') },
+      { path: 'epics', name: 'epics', component: () => import('../views/EpicsView.vue') },
+      { path: 'dashboard', name: 'dashboard', component: () => import('../views/DashboardView.vue') },
+    ],
   },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+router.beforeEach((to) => {
+  const auth = useAuthStore()
+  if (to.meta.auth && !auth.isAuthed()) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+  if (to.name === 'login' && auth.isAuthed()) {
+    return { name: 'board' }
+  }
 })
 
 export default router

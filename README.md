@@ -77,11 +77,11 @@ docker compose -f deploy/docker-compose.yml up --build   # http://localhost
 | P1 | DB 모델 · WAL · JWT 로그인 · seed | ✅ |
 | P2 | 프로젝트·에픽·이슈 CRUD · 이슈키 채번 · 라벨 | ✅ |
 | P3 | 댓글 · 활동로그 자동 기록 | ✅ |
-| P4 | 프론트 기반(로그인·AppShell·axios) | ⏳ |
-| P5 | 칸반 보드 · DnD · 낙관적 업데이트 | ⏳ |
-| P6 | 이슈 상세 Drawer · 댓글/활동 탭 | ⏳ |
-| P7 | 에픽 뷰 · 대시보드 시각화 | ⏳ |
-| P8 | EC2 배포 · Nginx · S3 백업 | ⏳ |
+| P4 | 프론트 기반(로그인·AppShell·axios) | ✅ |
+| P5 | 칸반 보드 · DnD · 낙관적 업데이트 | ✅ |
+| P6 | 이슈 상세 Drawer · 댓글/활동 탭 | ✅ |
+| P7 | 에픽 뷰 · 대시보드 시각화 | ✅ |
+| P8 | EC2 배포 · Nginx · S3 백업 | ⏳ (PM 확인 필요, 14장) |
 
 ## 라이선스 / 내부용
 
