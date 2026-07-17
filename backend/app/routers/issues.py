@@ -110,7 +110,9 @@ async def update_issue(
     if changes.get("assignee_id") is not None and await session.get(User, changes["assignee_id"]) is None:
         raise HTTPException(status_code=400, detail="유효하지 않은 담당자입니다.")
 
-    issue = await issue_service.update_issue(session, issue=issue, data=payload)
+    issue = await issue_service.update_issue(
+        session, issue=issue, actor_id=current.id, data=payload
+    )
     return await _build_detail(session, issue)
 
 
@@ -129,10 +131,12 @@ async def move_issue(
     issue_id: int,
     payload: IssueMove,
     session: AsyncSession = Depends(get_session),
-    _u: User = Depends(get_current_user),
+    current: User = Depends(get_current_user),
 ):
     issue = await _issue_or_404(session, issue_id)
-    return await issue_service.move_issue(session, issue=issue, data=payload)
+    return await issue_service.move_issue(
+        session, issue=issue, actor_id=current.id, data=payload
+    )
 
 
 @router.post("/issues/{issue_id}/labels", response_model=IssueDetail)

@@ -74,9 +74,9 @@ docker compose -f deploy/docker-compose.yml up --build   # http://localhost
 | Phase | 내용 | 상태 |
 |---|---|---|
 | P0 | 모노레포 스캐폴드 · Docker 골격 | ✅ |
-| P1 | DB 모델 · WAL · JWT 로그인 · seed | ⏳ |
-| P2 | 프로젝트·에픽·이슈 CRUD · 이슈키 채번 · 라벨 | ⏳ |
-| P3 | 댓글 · 활동로그 자동 기록 | ⏳ |
+| P1 | DB 모델 · WAL · JWT 로그인 · seed | ✅ |
+| P2 | 프로젝트·에픽·이슈 CRUD · 이슈키 채번 · 라벨 | ✅ |
+| P3 | 댓글 · 활동로그 자동 기록 | ✅ |
 | P4 | 프론트 기반(로그인·AppShell·axios) | ⏳ |
 | P5 | 칸반 보드 · DnD · 낙관적 업데이트 | ⏳ |
 | P6 | 이슈 상세 Drawer · 댓글/활동 탭 | ⏳ |
