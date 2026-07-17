@@ -95,33 +95,36 @@ const countOf = (key) => board[key]?.length || 0
       <section
         v-for="col in BOARD_COLUMNS"
         :key="col.key"
-        class="rounded-xl bg-slate-100/70 p-3 min-h-[62vh]"
+        class="flex flex-col rounded-xl bg-slate-100/70 p-3 min-h-[62vh]"
       >
-        <div class="flex items-center gap-2 px-1.5 mb-3">
+        <div class="flex items-center gap-2 px-1.5 mb-3 shrink-0">
           <span class="h-2 w-2 rounded-full" :style="{ background: DOT[col.key] }" />
           <h2 class="text-sm font-semibold text-slate-700">{{ col.label }}</h2>
           <span class="text-xs font-medium text-slate-400 tabular-nums">
             {{ countOf(col.key) }}
           </span>
         </div>
-        <draggable
-          :list="board[col.key]"
-          group="issues"
-          item-key="id"
-          class="space-y-2 min-h-[40px]"
-          ghost-class="opacity-40"
-          @change="(e) => onChange(e, col.key)"
-        >
-          <template #item="{ element }">
-            <IssueCard :issue="element" />
-          </template>
-        </draggable>
-        <p
-          v-if="!countOf(col.key)"
-          class="text-center text-xs text-slate-400 py-6 select-none"
-        >
-          이슈 없음
-        </p>
+        <!-- 드롭 영역이 컬럼 전체를 채우도록: relative + flex-1, draggable h-full -->
+        <div class="relative flex-1">
+          <draggable
+            :list="board[col.key]"
+            group="issues"
+            item-key="id"
+            class="space-y-2 h-full min-h-[120px]"
+            ghost-class="opacity-40"
+            @change="(e) => onChange(e, col.key)"
+          >
+            <template #item="{ element }">
+              <IssueCard :issue="element" />
+            </template>
+          </draggable>
+          <p
+            v-if="!countOf(col.key)"
+            class="absolute inset-0 flex items-center justify-center text-xs text-slate-400 select-none pointer-events-none"
+          >
+            여기로 카드를 드래그하세요
+          </p>
+        </div>
       </section>
     </div>
 
