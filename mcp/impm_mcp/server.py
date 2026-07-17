@@ -9,11 +9,19 @@ import os
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import ToolAnnotations
 
 from impm_mcp.client import ImpmClient, ImpmError
 
-mcp = FastMCP("impm")
+# 원격 호스팅(App Runner) 시 프록시가 Host 를 바꾸므로 DNS 리바인딩 보호를 끈다.
+# 실제 접근 제어는 Bearer 토큰(MCP_AUTH_TOKEN) 미들웨어가 담당.
+mcp = FastMCP(
+    "impm",
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=False
+    ),
+)
 client = ImpmClient()
 
 RO = ToolAnnotations(readOnlyHint=True, openWorldHint=True)
