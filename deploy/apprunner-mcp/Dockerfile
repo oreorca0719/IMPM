@@ -1,5 +1,6 @@
 # IMPM MCP 서버 (Streamable HTTP) — App Runner 호스팅용 이미지. 컨텍스트는 레포 루트.
-FROM python:3.12-slim
+# ECR Public 미러(Docker Hub 레이트 리밋 회피)
+FROM public.ecr.aws/docker/library/python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app

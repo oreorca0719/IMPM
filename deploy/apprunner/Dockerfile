@@ -2,7 +2,8 @@
 # CodeBuild 에서 빌드하여 ECR 로 푸시. 컨텍스트는 레포 루트.
 
 # ── Stage 1: 프론트 빌드 ─────────────────────────────
-FROM node:20-alpine AS fe
+# ECR Public 미러 사용(Docker Hub 익명 pull 레이트 리밋 회피)
+FROM public.ecr.aws/docker/library/node:20-alpine AS fe
 WORKDIR /fe
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm install
@@ -10,7 +11,7 @@ COPY frontend/ ./
 RUN npm run build          # → /fe/dist
 
 # ── Stage 2: 백엔드 런타임 ───────────────────────────
-FROM python:3.12-slim
+FROM public.ecr.aws/docker/library/python:3.12-slim
 
 WORKDIR /app
 COPY backend/ ./
