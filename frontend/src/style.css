@@ -6,8 +6,88 @@
   color-scheme: light;
 }
 
+html,
 body {
   margin: 0;
-  font-family: 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  height: 100%;
+}
+
+body {
+  font-family: 'Pretendard', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #1e293b; /* slate-800 */
+  background: #f8fafc; /* slate-50 */
+  letter-spacing: -0.01em;
+}
+
+/* 공통 UI 컴포넌트 클래스 (Linear/Notion 스타일 미니멀) */
+@layer components {
+  /* 버튼 */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg font-medium
+      transition-all duration-150 select-none
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40
+      disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-xs {
+    @apply px-2 py-1 text-xs;
+  }
+  .btn-sm {
+    @apply px-2.5 py-1.5 text-xs;
+  }
+  .btn-md {
+    @apply px-3.5 py-2 text-sm;
+  }
+  .btn-primary {
+    @apply bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 active:bg-indigo-800;
+  }
+  .btn-secondary {
+    @apply bg-white text-slate-700 ring-1 ring-inset ring-slate-200 shadow-sm
+      hover:bg-slate-50 hover:ring-slate-300;
+  }
+  .btn-ghost {
+    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+  }
+  .btn-danger {
+    @apply text-red-600 hover:bg-red-50;
+  }
+
+  /* 입력 */
+  .input {
+    @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm
+      text-slate-800 placeholder-slate-400 shadow-sm transition
+      focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20;
+  }
+  .field-label {
+    @apply block text-xs font-medium text-slate-500 mb-1;
+  }
+
+  /* 카드 / 패널 */
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+  }
+  .soft-shadow {
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 4px 16px rgba(15, 23, 42, 0.06);
+  }
+}
+
+/* 스크롤바 (미세하게 정리) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

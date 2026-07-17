@@ -28,47 +28,54 @@ async function submit() {
 </script>
 
 <template>
-  <main class="min-h-screen flex items-center justify-center bg-slate-100">
-    <form
-      class="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8 space-y-5"
-      @submit.prevent="submit"
-    >
-      <div class="text-center space-y-1">
-        <h1 class="text-2xl font-bold text-brand-600">IMPM</h1>
-        <p class="text-sm text-slate-500">STRIPE 프로젝트 관리</p>
+  <main class="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div class="w-full max-w-sm">
+      <!-- 로고 -->
+      <div class="flex flex-col items-center mb-8">
+        <div class="h-12 w-12 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm mb-3">
+          <span class="text-white font-bold text-lg tracking-tight">IM</span>
+        </div>
+        <h1 class="text-lg font-semibold text-slate-900">IMPM</h1>
+        <p class="text-sm text-slate-500 mt-0.5">STRIPE 프로젝트 관리</p>
       </div>
 
-      <div class="space-y-1">
-        <label class="text-sm font-medium text-slate-700">이메일</label>
-        <input
-          v-model="email"
-          type="email"
-          required
-          autocomplete="username"
-          class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
-        />
-      </div>
+      <form class="card soft-shadow p-7 space-y-4" @submit.prevent="submit">
+        <div>
+          <label class="field-label">이메일</label>
+          <input
+            v-model="email"
+            type="email"
+            required
+            autocomplete="username"
+            placeholder="you@impm.team"
+            class="input"
+          />
+        </div>
 
-      <div class="space-y-1">
-        <label class="text-sm font-medium text-slate-700">비밀번호</label>
-        <input
-          v-model="password"
-          type="password"
-          required
-          autocomplete="current-password"
-          class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
-        />
-      </div>
+        <div>
+          <label class="field-label">비밀번호</label>
+          <input
+            v-model="password"
+            type="password"
+            required
+            autocomplete="current-password"
+            placeholder="••••••••"
+            class="input"
+          />
+        </div>
 
-      <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+        <p v-if="error" class="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+          {{ error }}
+        </p>
 
-      <button
-        type="submit"
-        :disabled="loading"
-        class="w-full rounded-lg bg-brand-600 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-      >
-        {{ loading ? '로그인 중…' : '로그인' }}
-      </button>
-    </form>
+        <button type="submit" :disabled="loading" class="btn btn-primary btn-md w-full">
+          {{ loading ? '로그인 중…' : '로그인' }}
+        </button>
+      </form>
+
+      <p class="text-center text-xs text-slate-400 mt-6">
+        경기청년 갭이어 · STRIPE 개발 프로젝트 관리
+      </p>
+    </div>
   </main>
 </template>

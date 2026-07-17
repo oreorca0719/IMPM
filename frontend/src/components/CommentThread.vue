@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from 'vue'
 import { commentApi } from '../api'
 import { useAuthStore } from '../stores/auth'
 import { useProjectStore } from '../stores/project'
+import { fmtDateTime } from '../utils/datetime'
 import UserAvatar from './UserAvatar.vue'
 
 const props = defineProps({ issueId: { type: Number, required: true } })
@@ -42,50 +43,49 @@ async function remove(c) {
   await load()
   emit('changed')
 }
-function name(id) {
-  return project.userMap[id]?.name || '알 수 없음'
-}
-function fmt(ts) {
-  return new Date(ts).toLocaleString('ko-KR')
-}
+const name = (id) => project.userMap[id]?.name || '알 수 없음'
 </script>
 
 <template>
   <div class="space-y-4">
-    <div v-if="!comments.length" class="text-sm text-slate-400">첫 댓글을 남겨보세요.</div>
+    <div v-if="!comments.length" class="text-sm text-slate-400 py-2">
+      첫 댓글을 남겨보세요.
+    </div>
 
-    <div v-for="c in comments" :key="c.id" class="flex gap-2">
-      <UserAvatar :name="name(c.author_id)" :size="28" />
+    <div v-for="c in comments" :key="c.id" class="flex gap-2.5">
+      <UserAvatar :name="name(c.author_id)" :size="30" />
       <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2 text-xs text-slate-500">
+        <div class="flex items-center gap-2 text-xs">
           <span class="font-medium text-slate-700">{{ name(c.author_id) }}</span>
-          <span>{{ fmt(c.created_at) }}</span>
+          <span class="text-slate-400">{{ fmtDateTime(c.created_at) }}</span>
           <template v-if="c.author_id === auth.user?.id">
-            <button class="hover:text-brand-600" @click="startEdit(c)">수정</button>
-            <button class="hover:text-red-600" @click="remove(c)">삭제</button>
+            <button class="text-slate-400 hover:text-indigo-600" @click="startEdit(c)">수정</button>
+            <button class="text-slate-400 hover:text-red-600" @click="remove(c)">삭제</button>
           </template>
         </div>
-        <div v-if="editingId === c.id" class="mt-1 space-y-1">
-          <textarea v-model="editBody" rows="2" class="w-full rounded border border-slate-300 px-2 py-1 text-sm" />
+        <div v-if="editingId === c.id" class="mt-1.5 space-y-1.5">
+          <textarea v-model="editBody" rows="2" class="input" />
           <div class="flex gap-2">
-            <button class="text-xs text-brand-600" @click="saveEdit">저장</button>
-            <button class="text-xs text-slate-500" @click="editingId = null">취소</button>
+            <button class="btn btn-primary btn-xs" @click="saveEdit">저장</button>
+            <button class="btn btn-ghost btn-xs" @click="editingId = null">취소</button>
           </div>
         </div>
-        <p v-else class="mt-0.5 text-sm whitespace-pre-wrap">{{ c.body }}</p>
+        <p v-else class="mt-1 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+          {{ c.body }}
+        </p>
       </div>
     </div>
 
-    <div class="flex gap-2 pt-2 border-t border-slate-100">
+    <div class="flex gap-2 pt-3 border-t border-slate-100">
       <textarea
         v-model="body"
         rows="2"
         placeholder="댓글 작성…"
-        class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500"
+        class="input resize-none"
+        @keydown.meta.enter="add"
+        @keydown.ctrl.enter="add"
       />
-      <button class="self-end rounded-lg bg-brand-600 px-3 py-2 text-sm text-white hover:bg-brand-700" @click="add">
-        등록
-      </button>
+      <button class="btn btn-primary btn-sm self-end" @click="add">등록</button>
     </div>
   </div>
 </template>

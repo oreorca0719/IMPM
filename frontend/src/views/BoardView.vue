@@ -6,23 +6,26 @@ import { BOARD_COLUMNS } from '../constants'
 import { useIssueStore } from '../stores/issue'
 import { useProjectStore } from '../stores/project'
 import CreateIssueModal from '../components/CreateIssueModal.vue'
+import Icon from '../components/Icon.vue'
 import IssueCard from '../components/IssueCard.vue'
 
 const project = useProjectStore()
 const issueStore = useIssueStore()
 
-// 상태별 컬럼 로컬 배열(vuedraggable v-model 대상)
 const board = reactive({ TODO: [], IN_PROGRESS: [], DONE: [] })
 const epics = ref([])
 const toast = ref('')
 const showCreate = ref(false)
+
+// 컬럼별 색 점(상태 시각 구분)
+const DOT = { TODO: '#94a3b8', IN_PROGRESS: '#6366f1', DONE: '#22c55e' }
 
 function rebuild() {
   for (const col of BOARD_COLUMNS) board[col.key] = []
   const sorted = [...issueStore.issues].sort((a, b) => a.board_order - b.board_order)
   for (const it of sorted) {
     if (board[it.status]) board[it.status].push(it)
-    else (board[it.status] = [it]) // 확장 상태 방어
+    else (board[it.status] = [it])
   }
 }
 
@@ -48,7 +51,7 @@ function computeOrder(list, index) {
 
 async function onChange(evt, status) {
   const info = evt.added || evt.moved
-  if (!info) return // removed 는 대상 컬럼의 added 로 처리됨
+  if (!info) return
   const item = info.element
   const order = computeOrder(board[status], info.newIndex)
   const prev = { status: item.status, board_order: item.board_order }
@@ -67,39 +70,37 @@ async function onChange(evt, status) {
 }
 
 async function onCreated(payload) {
-  const created = await issueStore.create(project.current.id, payload)
+  await issueStore.create(project.current.id, payload)
   showCreate.value = false
   epics.value = (await epicApi.list(project.current.id)).data
   rebuild()
-  return created
 }
 
-function countOf(key) {
-  return board[key]?.length || 0
-}
+const countOf = (key) => board[key]?.length || 0
 </script>
 
 <template>
-  <div class="p-6">
-    <header class="flex items-center justify-between mb-5">
-      <h1 class="text-xl font-bold">칸반 보드</h1>
-      <button
-        class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-        @click="showCreate = true"
-      >
-        + 이슈
+  <div class="px-8 py-6">
+    <header class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-xl font-semibold text-slate-900">칸반 보드</h1>
+        <p class="text-sm text-slate-400 mt-0.5">드래그로 상태를 옮기세요</p>
+      </div>
+      <button class="btn btn-primary btn-md" @click="showCreate = true">
+        <Icon name="plus" :size="16" /> 새 이슈
       </button>
     </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
       <section
         v-for="col in BOARD_COLUMNS"
         :key="col.key"
-        class="bg-slate-200/60 rounded-xl p-3 min-h-[60vh]"
+        class="rounded-xl bg-slate-100/70 p-3 min-h-[62vh]"
       >
-        <div class="flex items-center justify-between px-1 mb-3">
+        <div class="flex items-center gap-2 px-1.5 mb-3">
+          <span class="h-2 w-2 rounded-full" :style="{ background: DOT[col.key] }" />
           <h2 class="text-sm font-semibold text-slate-700">{{ col.label }}</h2>
-          <span class="text-xs text-slate-500 bg-slate-300/70 rounded-full px-2">
+          <span class="text-xs font-medium text-slate-400 tabular-nums">
             {{ countOf(col.key) }}
           </span>
         </div>
@@ -115,6 +116,12 @@ function countOf(key) {
             <IssueCard :issue="element" />
           </template>
         </draggable>
+        <p
+          v-if="!countOf(col.key)"
+          class="text-center text-xs text-slate-400 py-6 select-none"
+        >
+          이슈 없음
+        </p>
       </section>
     </div>
 
@@ -125,11 +132,18 @@ function countOf(key) {
       @created="onCreated"
     />
 
-    <div
-      v-if="toast"
-      class="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg bg-red-600 px-4 py-2 text-sm text-white shadow-lg"
+    <transition
+      enter-active-class="transition duration-200"
+      enter-from-class="opacity-0 translate-y-2"
+      leave-active-class="transition duration-200"
+      leave-to-class="opacity-0"
     >
-      {{ toast }}
-    </div>
+      <div
+        v-if="toast"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm text-white shadow-lg"
+      >
+        {{ toast }}
+      </div>
+    </transition>
   </div>
 </template>

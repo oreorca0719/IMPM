@@ -2,10 +2,9 @@
 import { ref } from 'vue'
 import { useProjectStore } from '../stores/project'
 import { PRIORITIES } from '../constants'
+import Icon from './Icon.vue'
 
-const props = defineProps({
-  epics: { type: Array, default: () => [] },
-})
+defineProps({ epics: { type: Array, default: () => [] } })
 const emit = defineEmits(['close', 'created'])
 const project = useProjectStore()
 
@@ -39,57 +38,62 @@ async function submit() {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40" @click.self="emit('close')">
-    <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl space-y-4">
-      <h2 class="text-lg font-semibold">새 이슈</h2>
+  <div
+    class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
+    @click.self="emit('close')"
+  >
+    <div class="w-full max-w-md card soft-shadow p-6 space-y-5">
+      <div class="flex items-center justify-between">
+        <h2 class="text-base font-semibold text-slate-900">새 이슈</h2>
+        <button class="btn btn-ghost btn-xs !p-1.5" @click="emit('close')">
+          <Icon name="close" :size="18" />
+        </button>
+      </div>
 
-      <div class="space-y-1">
-        <label class="text-sm text-slate-600">제목 *</label>
+      <div>
+        <label class="field-label">제목 <span class="text-red-500">*</span></label>
         <input
           v-model="form.title"
-          class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-brand-500"
+          class="input"
           placeholder="무엇을 해야 하나요?"
+          autofocus
           @keyup.enter="submit"
         />
       </div>
 
       <div class="grid grid-cols-2 gap-3">
-        <div class="space-y-1">
-          <label class="text-sm text-slate-600">우선순위</label>
-          <select v-model="form.priority" class="w-full rounded-lg border border-slate-300 px-2 py-2">
+        <div>
+          <label class="field-label">우선순위</label>
+          <select v-model="form.priority" class="input">
             <option v-for="p in PRIORITIES" :key="p.key" :value="p.key">{{ p.label }}</option>
           </select>
         </div>
-        <div class="space-y-1">
-          <label class="text-sm text-slate-600">담당자</label>
-          <select v-model="form.assignee_id" class="w-full rounded-lg border border-slate-300 px-2 py-2">
+        <div>
+          <label class="field-label">담당자</label>
+          <select v-model="form.assignee_id" class="input">
             <option :value="null">미지정</option>
             <option v-for="u in project.users" :key="u.id" :value="u.id">{{ u.name }}</option>
           </select>
         </div>
-        <div class="space-y-1">
-          <label class="text-sm text-slate-600">에픽</label>
-          <select v-model="form.epic_id" class="w-full rounded-lg border border-slate-300 px-2 py-2">
+        <div>
+          <label class="field-label">에픽</label>
+          <select v-model="form.epic_id" class="input">
             <option :value="null">없음</option>
             <option v-for="e in epics" :key="e.id" :value="e.id">{{ e.key }} · {{ e.title }}</option>
           </select>
         </div>
-        <div class="space-y-1">
-          <label class="text-sm text-slate-600">마감일</label>
-          <input v-model="form.due_date" type="date" class="w-full rounded-lg border border-slate-300 px-2 py-2" />
+        <div>
+          <label class="field-label">마감일</label>
+          <input v-model="form.due_date" type="date" class="input" />
         </div>
       </div>
 
       <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
 
-      <div class="flex justify-end gap-2 pt-2">
-        <button class="rounded-lg px-4 py-2 text-slate-600 hover:bg-slate-100" @click="emit('close')">취소</button>
-        <button
-          :disabled="saving"
-          class="rounded-lg bg-brand-600 px-4 py-2 text-white hover:bg-brand-700 disabled:opacity-60"
-          @click="submit"
-        >
-          생성
+      <div class="flex justify-end gap-2 pt-1">
+        <button class="btn btn-secondary btn-md" @click="emit('close')">취소</button>
+        <button :disabled="saving" class="btn btn-primary btn-md" @click="submit">
+          이슈 생성
         </button>
       </div>
     </div>

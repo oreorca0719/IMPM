@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from 'vue'
 import { commentApi } from '../api'
 import { useProjectStore } from '../stores/project'
 import { PRIORITY_MAP, STATUS_LABEL } from '../constants'
+import { fmtDateTime } from '../utils/datetime'
 
 const props = defineProps({ issueId: { type: Number, required: true } })
 const project = useProjectStore()
@@ -14,22 +15,10 @@ async function load() {
 onMounted(load)
 watch(() => props.issueId, load)
 
-function actor(id) {
-  return project.userMap[id]?.name || '누군가'
-}
-function fmt(ts) {
-  return new Date(ts).toLocaleString('ko-KR')
-}
-
-function statusText(v) {
-  return v ? STATUS_LABEL[v] || v : '없음'
-}
-function priorityText(v) {
-  return v ? PRIORITY_MAP[v]?.label || v : '없음'
-}
-function userText(id) {
-  return id ? project.userMap[Number(id)]?.name || `#${id}` : '미지정'
-}
+const actor = (id) => project.userMap[id]?.name || '누군가'
+const statusText = (v) => (v ? STATUS_LABEL[v] || v : '없음')
+const priorityText = (v) => (v ? PRIORITY_MAP[v]?.label || v : '없음')
+const userText = (id) => (id ? project.userMap[Number(id)]?.name || `#${id}` : '미지정')
 
 function describe(log) {
   const who = actor(log.actor_id)
@@ -53,14 +42,14 @@ function describe(log) {
 </script>
 
 <template>
-  <div class="space-y-3">
-    <div v-if="!logs.length" class="text-sm text-slate-400">활동 내역이 없습니다.</div>
-    <div v-for="log in logs" :key="log.id" class="flex gap-2 text-sm">
-      <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500" />
-      <div>
-        <p>{{ describe(log) }}</p>
-        <p class="text-xs text-slate-400">{{ fmt(log.created_at) }}</p>
-      </div>
-    </div>
+  <div>
+    <div v-if="!logs.length" class="text-sm text-slate-400 py-2">활동 내역이 없습니다.</div>
+    <ol class="relative border-l border-slate-200 ml-1.5 space-y-4">
+      <li v-for="log in logs" :key="log.id" class="pl-4 relative">
+        <span class="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-indigo-400 ring-2 ring-white" />
+        <p class="text-sm text-slate-700 leading-snug">{{ describe(log) }}</p>
+        <p class="text-xs text-slate-400 mt-0.5">{{ fmtDateTime(log.created_at) }}</p>
+      </li>
+    </ol>
   </div>
 </template>

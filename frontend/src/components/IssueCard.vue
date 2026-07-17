@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProjectStore } from '../stores/project'
+import Icon from './Icon.vue'
 import LabelChip from './LabelChip.vue'
 import PriorityBadge from './PriorityBadge.vue'
 import UserAvatar from './UserAvatar.vue'
@@ -19,7 +20,7 @@ const dueInfo = computed(() => {
   if (!props.issue.due_date) return null
   const due = new Date(props.issue.due_date)
   const days = Math.ceil((due - new Date()) / 86400000)
-  return { text: props.issue.due_date, soon: days <= 7, over: days < 0 }
+  return { text: props.issue.due_date.slice(5), soon: days <= 7, over: days < 0 }
 })
 
 function open() {
@@ -29,27 +30,35 @@ function open() {
 
 <template>
   <div
-    class="bg-white rounded-lg border border-slate-200 p-3 shadow-sm hover:shadow cursor-pointer space-y-2"
+    class="group bg-white rounded-lg border border-slate-200 p-3 cursor-pointer space-y-2
+      transition-all duration-150 hover:border-slate-300 hover:shadow-md"
     @click="open"
   >
     <div class="flex items-center justify-between">
-      <span class="text-xs font-mono text-slate-400">{{ issue.key }}</span>
-      <PriorityBadge :priority="issue.priority" />
+      <span class="text-[11px] font-mono font-medium text-slate-400">{{ issue.key }}</span>
+      <PriorityBadge :priority="issue.priority" dot />
     </div>
-    <div class="text-sm font-medium leading-snug">{{ issue.title }}</div>
+
+    <div class="text-sm font-medium text-slate-800 leading-snug">{{ issue.title }}</div>
+
     <div v-if="issue.labels?.length" class="flex flex-wrap gap-1">
       <LabelChip v-for="l in issue.labels" :key="l.id" :label="l" />
     </div>
-    <div class="flex items-center justify-between pt-1">
+
+    <div class="flex items-center justify-between pt-0.5">
       <span
         v-if="dueInfo"
-        class="text-[11px]"
-        :class="dueInfo.over ? 'text-red-600 font-semibold' : dueInfo.soon ? 'text-amber-600' : 'text-slate-400'"
+        class="inline-flex items-center gap-1 text-[11px] font-medium"
+        :class="dueInfo.over ? 'text-red-500' : dueInfo.soon ? 'text-amber-500' : 'text-slate-400'"
       >
-        📅 {{ dueInfo.text }}
+        <Icon name="calendar" :size="13" /> {{ dueInfo.text }}
       </span>
       <span v-else />
-      <UserAvatar v-if="assignee" :name="assignee.name" :size="24" />
+      <UserAvatar v-if="assignee" :name="assignee.name" :size="22" />
+      <span
+        v-else
+        class="h-[22px] w-[22px] rounded-full border border-dashed border-slate-300"
+      />
     </div>
   </div>
 </template>
