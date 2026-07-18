@@ -19,7 +19,9 @@ class User(SQLModel, table=True):
     email: str = Field(index=True, unique=True)
     password_hash: str
     name: str
-    role: str = Field(default="member")  # member/admin (1차는 표시용)
+    role: str = Field(default="member")  # member/admin/bot
+    # 최초 로그인 시 아이디·비밀번호 변경을 강제하기 위한 플래그
+    must_change_password: bool = Field(default=True)
     created_at: datetime = Field(default_factory=now_utc)
 
 

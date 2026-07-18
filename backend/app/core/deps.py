@@ -40,7 +40,11 @@ async def get_current_user(
         raise _credentials_error
 
     if x_act_as and principal.role == "bot":
-        target = await user_crud.get_by_email(session, x_act_as)
+        # 숫자면 사용자 ID, 아니면 이메일로 해석(이메일 변경에도 귀속이 유지되도록)
+        if x_act_as.isdigit():
+            target = await session.get(User, int(x_act_as))
+        else:
+            target = await user_crud.get_by_email(session, x_act_as)
         if target is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

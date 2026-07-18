@@ -49,13 +49,16 @@ async def run() -> None:
             if existing:
                 print(f"  = 사용자 존재: {u['email']}")
                 continue
-            pw = BOT_PASSWORD if u["role"] == "bot" else SEED_PASSWORD
+            is_bot = u["role"] == "bot"
+            pw = BOT_PASSWORD if is_bot else SEED_PASSWORD
             session.add(
                 User(
                     email=u["email"],
                     name=u["name"],
                     role=u["role"],
                     password_hash=hash_password(pw),
+                    # 사람 계정은 최초 로그인 시 아이디·비밀번호 변경 강제, 봇은 제외
+                    must_change_password=not is_bot,
                 )
             )
             print(f"  + 사용자 생성: {u['name']} <{u['email']}>")

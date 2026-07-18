@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { authApi } from '../api'
 import { TOKEN_KEY } from '../api/client'
 
@@ -28,6 +28,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const isAuthed = () => !!token.value
+  // 최초 로그인 시 아이디·비밀번호 변경이 필요한 상태
+  const needsSetup = computed(() => !!user.value?.must_change_password)
 
-  return { user, token, login, fetchMe, logout, isAuthed }
+  function setUser(u) {
+    user.value = u
+  }
+
+  return { user, token, login, fetchMe, logout, isAuthed, needsSetup, setUser }
 })

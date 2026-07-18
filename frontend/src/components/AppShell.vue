@@ -73,15 +73,21 @@ function closeDrawer() {
 
       <div class="p-3 border-t border-slate-100">
         <div class="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-          <UserAvatar :name="auth.user?.name || '?'" :size="30" />
-          <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium text-slate-800 truncate">
-              {{ auth.user?.name || '…' }}
+          <RouterLink
+            :to="{ name: 'settings' }"
+            class="flex items-center gap-2.5 flex-1 min-w-0 rounded-lg -mx-1 px-1 py-0.5 hover:bg-slate-100 transition-colors"
+            title="계정 설정"
+          >
+            <UserAvatar :name="auth.user?.name || '?'" :size="30" />
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-slate-800 truncate">
+                {{ auth.user?.name || '…' }}
+              </div>
+              <div class="text-xs text-slate-400 truncate">{{ auth.user?.email }}</div>
             </div>
-            <div class="text-xs text-slate-400 truncate">{{ auth.user?.email }}</div>
-          </div>
+          </RouterLink>
           <button
-            class="btn btn-ghost btn-xs !p-1.5 text-slate-400 hover:text-slate-700"
+            class="btn btn-ghost btn-xs !p-1.5 text-slate-400 hover:text-slate-700 shrink-0"
             title="로그아웃"
             @click="logout"
           >

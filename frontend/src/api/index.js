@@ -4,6 +4,11 @@ import client from './client'
 export const authApi = {
   login: (email, password) => client.post('/auth/login', { email, password }),
   me: () => client.get('/auth/me'),
+  // 아이디(이메일)·이름 변경 — 본인 확인용 현재 비밀번호 필요
+  updateMe: (data) => client.patch('/auth/me', data),
+  // 비밀번호 변경 — 성공 시 '최초 변경 필요' 플래그 해제
+  changePassword: (current_password, new_password) =>
+    client.post('/auth/password', { current_password, new_password }),
 }
 
 export const userApi = {

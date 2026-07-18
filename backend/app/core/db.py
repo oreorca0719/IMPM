@@ -53,6 +53,26 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
+async def _ensure_columns(conn) -> None:
+    """기존 DB에 없는 컬럼을 멱등하게 추가(간이 마이그레이션).
+
+    운영 DB(RDS)는 프라이빗이라 외부에서 Alembic 실행이 어려워, 앱 부팅 시 보정한다.
+    새 DB에서는 create_all 이 이미 만들어 두므로 no-op.
+    """
+    if _is_sqlite:
+        rows = await conn.exec_driver_sql("PRAGMA table_info(users)")
+        cols = {r[1] for r in rows.fetchall()}
+        if "must_change_password" not in cols:
+            await conn.exec_driver_sql(
+                "ALTER TABLE users ADD COLUMN must_change_password BOOLEAN NOT NULL DEFAULT 1"
+            )
+    else:
+        await conn.exec_driver_sql(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS "
+            "must_change_password BOOLEAN NOT NULL DEFAULT TRUE"
+        )
+
+
 async def init_db() -> None:
     """테이블 생성(SQLModel.metadata 기준; 스키마 버전 관리는 Alembic)."""
     import app.models  # noqa: F401  (메타데이터 등록)
@@ -61,3 +81,4 @@ async def init_db() -> None:
         if _is_sqlite:
             await conn.execute(text("PRAGMA journal_mode=WAL;"))
         await conn.run_sync(SQLModel.metadata.create_all)
+        await _ensure_columns(conn)
