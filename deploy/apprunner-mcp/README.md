@@ -21,7 +21,11 @@
 | CodeBuild | `impm-mcp-build` |
 | App Runner | `impm-mcp` · URL `https://2gtp4nrtmn.ap-northeast-1.awsapprunner.com` |
 
-env: `IMPM_BASE_URL`, `IMPM_BOT_EMAIL`, `IMPM_BOT_PASSWORD`, `MCP_USER_TOKENS`(JSON `{token: email}`).
+env: `IMPM_BASE_URL`, `IMPM_BOT_EMAIL`, `IMPM_BOT_PASSWORD`, `MCP_USER_TOKENS`.
+
+`MCP_USER_TOKENS` 는 JSON `{"<token>": "<사용자ID>"}` 형식입니다. **이메일이 아니라 사용자 ID**를 쓰는 이유는,
+팀원이 계정 설정에서 아이디(이메일)를 바꿔도 귀속이 깨지지 않게 하기 위함입니다.
+(백엔드 `X-Act-As` 는 숫자면 ID, 아니면 이메일로 해석합니다.)
 
 ## 팀원 연결 (각자 1회, 개인 토큰 사용)
 
