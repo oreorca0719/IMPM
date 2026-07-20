@@ -16,6 +16,7 @@ from app.core.db import async_session_maker, init_db
 from app.core.security import hash_password
 from app.crud import user as user_crud
 from app.models import Project, User
+from sqlalchemy import func
 from sqlmodel import select
 
 SEED_PASSWORD = os.getenv("SEED_PASSWORD", "impm-initial-pw!")
@@ -43,7 +44,14 @@ SEED_PROJECT = {
 async def run() -> None:
     await init_db()
     async with async_session_maker() as session:
-        # 사용자
+        # 사용자 — 이미 계정이 하나라도 있으면 건너뛴다.
+        # (사용자가 아이디를 바꾼 경우, 이메일로만 검사하면 매 배포마다
+        #  같은 사람의 '유령 계정'이 다시 생성되는 문제가 있었음)
+        user_count = (await session.exec(select(func.count()).select_from(User))).one()
+        if user_count:
+            print(f"  = 기존 계정 {user_count}개 존재 → 사용자 시드 건너뜀")
+            SEED_USERS.clear()
+
         for u in SEED_USERS:
             existing = await user_crud.get_by_email(session, u["email"])
             if existing:
