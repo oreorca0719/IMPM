@@ -35,3 +35,4 @@ class ActivityAction(str, Enum):
     due_changed = "due_changed"
     priority_changed = "priority_changed"
     epic_changed = "epic_changed"
+    reporter_changed = "reporter_changed"  # 등록자(작성자) 정정

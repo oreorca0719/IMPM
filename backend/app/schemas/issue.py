@@ -29,6 +29,8 @@ class IssueUpdate(BaseModel):
     priority: Priority | None = None
     assignee_id: int | None = None
     due_date: date | None = None
+    # 등록자(작성자) 정정용 — 잘못된 계정으로 기록된 경우 바로잡을 때 사용
+    reporter_id: int | None = None
 
 
 class IssueMove(BaseModel):

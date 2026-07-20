@@ -109,6 +109,11 @@ async def update_issue(
             raise HTTPException(status_code=400, detail="유효하지 않은 에픽입니다.")
     if changes.get("assignee_id") is not None and await session.get(User, changes["assignee_id"]) is None:
         raise HTTPException(status_code=400, detail="유효하지 않은 담당자입니다.")
+    if "reporter_id" in changes:
+        if changes["reporter_id"] is None:
+            raise HTTPException(status_code=400, detail="등록자는 비울 수 없습니다.")
+        if await session.get(User, changes["reporter_id"]) is None:
+            raise HTTPException(status_code=400, detail="유효하지 않은 등록자입니다.")
 
     issue = await issue_service.update_issue(
         session, issue=issue, actor_id=current.id, data=payload

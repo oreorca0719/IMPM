@@ -35,6 +35,8 @@ function describe(log) {
       return `${who}이(가) 우선순위를 ${priorityText(log.old_value)} → ${priorityText(log.new_value)} 로 변경했습니다.`
     case 'epic_changed':
       return `${who}이(가) 에픽을 변경했습니다.`
+    case 'reporter_changed':
+      return `${who}이(가) 등록자를 ${userText(log.old_value)} → ${userText(log.new_value)} 로 정정했습니다.`
     default:
       return `${who}이(가) ${log.action}`
   }

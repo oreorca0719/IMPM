@@ -122,6 +122,19 @@ function availableLabels() {
               />
             </label>
             <label class="block col-span-2">
+              <span class="field-label">등록자 (작성자)</span>
+              <select
+                :value="issue.reporter_id ?? ''"
+                class="input"
+                @change="(e) => save({ reporter_id: Number(e.target.value) })"
+              >
+                <option v-for="u in project.users" :key="u.id" :value="u.id">{{ u.name }}</option>
+              </select>
+              <span class="text-xs text-slate-400 mt-1 block">
+                잘못된 계정으로 등록된 경우 여기서 정정할 수 있습니다.
+              </span>
+            </label>
+            <label class="block col-span-2">
               <span class="field-label">에픽</span>
               <select
                 :value="issue.epic_id ?? ''"

@@ -14,6 +14,7 @@ TRACKED = {
     "due_date": (ActivityAction.due_changed, "due_date"),
     "priority": (ActivityAction.priority_changed, "priority"),
     "epic_id": (ActivityAction.epic_changed, "epic"),
+    "reporter_id": (ActivityAction.reporter_changed, "reporter"),
 }
 
 
