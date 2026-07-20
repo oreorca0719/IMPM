@@ -14,6 +14,17 @@ from app.core.db import init_db
 async def lifespan(_app: FastAPI):
     # 개발 편의: 앱 기동 시 테이블 보장(운영 스키마 변경은 Alembic 사용)
     await init_db()
+    # 환경변수로 배포했던 MCP 토큰을 DB로 1회 이관(이미 있으면 no-op)
+    from app.core.db import async_session_maker
+    from app.services import mcp_token as mcp_token_service
+
+    try:
+        async with async_session_maker() as session:
+            moved = await mcp_token_service.backfill_from_env(session)
+            if moved:
+                print(f"[startup] MCP 토큰 {moved}건 DB로 이관")
+    except Exception as e:  # 이관 실패가 기동을 막지 않도록
+        print(f"[startup] MCP 토큰 이관 건너뜀: {e}")
     yield
 
 

@@ -66,11 +66,19 @@ async def _ensure_columns(conn) -> None:
             await conn.exec_driver_sql(
                 "ALTER TABLE users ADD COLUMN must_change_password BOOLEAN NOT NULL DEFAULT 1"
             )
+        if "mcp_token" not in cols:
+            await conn.exec_driver_sql("ALTER TABLE users ADD COLUMN mcp_token VARCHAR")
     else:
         await conn.exec_driver_sql(
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS "
             "must_change_password BOOLEAN NOT NULL DEFAULT TRUE"
         )
+        await conn.exec_driver_sql(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS mcp_token VARCHAR"
+        )
+    await conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_mcp_token ON users (mcp_token)"
+    )
 
 
 async def init_db() -> None:

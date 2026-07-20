@@ -1,9 +1,50 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { authApi } from '../api'
 import { useAuthStore } from '../stores/auth'
+import Icon from '../components/Icon.vue'
 
 const auth = useAuthStore()
+
+// Claude(MCP) 연동 토큰
+const mcp = ref(null)
+const showToken = ref(false)
+const copied = ref('')
+const rotating = ref(false)
+
+onMounted(async () => {
+  try {
+    mcp.value = (await authApi.mcpToken()).data
+  } catch {
+    /* 조회 실패 시 섹션만 숨김 */
+  }
+})
+
+function masked(t) {
+  if (!t) return ''
+  return t.slice(0, 6) + '•'.repeat(Math.max(0, t.length - 10)) + t.slice(-4)
+}
+
+async function copy(text, what) {
+  try {
+    await navigator.clipboard.writeText(text)
+    copied.value = what
+    setTimeout(() => (copied.value = ''), 1800)
+  } catch {
+    copied.value = ''
+  }
+}
+
+async function rotate() {
+  if (!confirm('토큰을 새로 발급하면 기존 토큰은 즉시 사용할 수 없습니다. 계속할까요?')) return
+  rotating.value = true
+  try {
+    mcp.value = (await authApi.rotateMcpToken()).data
+    showToken.value = true
+  } finally {
+    rotating.value = false
+  }
+}
 
 // 프로필(아이디·이름)
 const email = ref(auth.user?.email || '')
@@ -115,6 +156,60 @@ async function savePassword() {
       <div class="flex justify-end">
         <button :disabled="savingPw" class="btn btn-primary btn-md" @click="savePassword">
           {{ savingPw ? '변경 중…' : '비밀번호 변경' }}
+        </button>
+      </div>
+    </section>
+
+    <!-- Claude(MCP) 연동 -->
+    <section v-if="mcp" class="card p-5 space-y-4">
+      <div>
+        <h2 class="text-sm font-semibold text-slate-700">Claude 연동 (MCP)</h2>
+        <p class="text-xs text-slate-400 mt-1">
+          이 토큰으로 Claude를 연결하면, Claude로 한 작업이 <b>본인 이름</b>으로 기록됩니다.
+        </p>
+      </div>
+
+      <!-- 토큰 -->
+      <div>
+        <label class="field-label">내 토큰</label>
+        <div class="flex items-center gap-2">
+          <code class="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-700 break-all">
+            {{ showToken ? mcp.token : masked(mcp.token) }}
+          </code>
+          <button class="btn btn-secondary btn-sm shrink-0" @click="showToken = !showToken">
+            {{ showToken ? '숨기기' : '보기' }}
+          </button>
+          <button class="btn btn-secondary btn-sm shrink-0" @click="copy(mcp.token, 'token')">
+            {{ copied === 'token' ? '복사됨' : '복사' }}
+          </button>
+        </div>
+        <p class="text-xs text-amber-600 mt-1.5">
+          ⚠ 본인만 사용하세요. 다른 사람과 공유하면 그 사람의 작업이 내 이름으로 기록됩니다.
+        </p>
+      </div>
+
+      <!-- 연결 명령어 -->
+      <div>
+        <label class="field-label">연결 명령어 (PowerShell 에 붙여넣기, 최초 1회)</label>
+        <div class="rounded-lg border border-slate-200 bg-slate-900 p-3">
+          <code class="block text-[11px] font-mono text-slate-100 whitespace-pre-wrap break-all">{{ mcp.connect_command }}</code>
+        </div>
+        <div class="flex items-center gap-2 mt-2">
+          <button class="btn btn-primary btn-sm" @click="copy(mcp.connect_command, 'cmd')">
+            <Icon name="check" :size="14" v-if="copied === 'cmd'" />
+            {{ copied === 'cmd' ? '복사됨' : '명령어 복사' }}
+          </button>
+          <span class="text-xs text-slate-400">복사해서 PowerShell 에 붙여넣고 Enter</span>
+        </div>
+      </div>
+
+      <!-- 재발급 -->
+      <div class="flex items-center justify-between border-t border-slate-100 pt-4">
+        <p class="text-xs text-slate-500">
+          토큰이 유출된 것 같으면 새로 발급하세요. (기존 토큰 즉시 무효)
+        </p>
+        <button :disabled="rotating" class="btn btn-secondary btn-sm shrink-0" @click="rotate">
+          {{ rotating ? '발급 중…' : '토큰 재발급' }}
         </button>
       </div>
     </section>

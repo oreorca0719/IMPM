@@ -9,6 +9,9 @@ export const authApi = {
   // 비밀번호 변경 — 성공 시 '최초 변경 필요' 플래그 해제
   changePassword: (current_password, new_password) =>
     client.post('/auth/password', { current_password, new_password }),
+  // 본인의 Claude(MCP) 연동 토큰 조회 / 재발급
+  mcpToken: () => client.get('/auth/mcp-token'),
+  rotateMcpToken: () => client.post('/auth/mcp-token/rotate'),
 }
 
 export const userApi = {

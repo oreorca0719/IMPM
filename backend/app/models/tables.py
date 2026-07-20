@@ -22,6 +22,8 @@ class User(SQLModel, table=True):
     role: str = Field(default="member")  # member/admin/bot
     # 최초 로그인 시 아이디·비밀번호 변경을 강제하기 위한 플래그
     must_change_password: bool = Field(default=True)
+    # Claude(MCP) 연동용 개인 토큰. 설정 페이지에서 본인만 조회/재발급 가능.
+    mcp_token: str | None = Field(default=None, index=True, unique=True)
     created_at: datetime = Field(default_factory=now_utc)
 
 

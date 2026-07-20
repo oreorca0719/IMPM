@@ -28,3 +28,21 @@ class ProfileUpdate(BaseModel):
 class PasswordChange(BaseModel):
     current_password: str
     new_password: str = Field(min_length=8, max_length=128)
+
+
+class McpTokenRead(BaseModel):
+    """본인의 Claude(MCP) 연동 토큰과 연결 안내."""
+
+    token: str
+    mcp_url: str
+    connect_command: str
+
+
+class McpResolveRequest(BaseModel):
+    token: str
+
+
+class McpResolveResult(BaseModel):
+    id: int
+    email: EmailStr
+    name: str
