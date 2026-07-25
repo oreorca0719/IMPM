@@ -29,6 +29,8 @@ async def test_get_own_token_is_stable(client, session):
     assert len(t1) >= 32
     assert "claude mcp add" in r1.json()["connect_command"]
     assert t1 in r1.json()["connect_command"]
+    # 채팅 앱용 URL 은 /mcp/<token> 형태로 토큰을 포함
+    assert r1.json()["chat_url"].endswith("/" + t1)
 
     # 다시 호출해도 같은 토큰
     r2 = await client.get("/api/auth/mcp-token", headers=h)

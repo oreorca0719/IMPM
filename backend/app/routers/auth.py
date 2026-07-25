@@ -106,12 +106,13 @@ async def change_password(
 
 
 def _token_payload(token: str) -> McpTokenRead:
-    url = settings.mcp_public_url or "https://<MCP-서버-주소>/mcp"
+    url = (settings.mcp_public_url or "https://<MCP-서버-주소>/mcp").rstrip("/")
     cmd = (
         "claude mcp add --transport http --scope user impm "
         f'{url} --header "Authorization: Bearer {token}"'
     )
-    return McpTokenRead(token=token, mcp_url=url, connect_command=cmd)
+    chat_url = f"{url}/{token}"  # /mcp/<token> — 채팅 앱 커스텀 커넥터용
+    return McpTokenRead(token=token, mcp_url=url, chat_url=chat_url, connect_command=cmd)
 
 
 @router.get("/mcp-token", response_model=McpTokenRead)

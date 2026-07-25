@@ -34,8 +34,9 @@ class McpTokenRead(BaseModel):
     """본인의 Claude(MCP) 연동 토큰과 연결 안내."""
 
     token: str
-    mcp_url: str
-    connect_command: str
+    mcp_url: str  # 기본 엔드포인트(헤더 인증용)
+    chat_url: str  # 토큰이 포함된 URL(데스크톱 채팅 앱 커스텀 커넥터용)
+    connect_command: str  # Claude Code CLI 명령어
 
 
 class McpResolveRequest(BaseModel):

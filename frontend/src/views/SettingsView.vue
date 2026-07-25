@@ -188,18 +188,35 @@ async function savePassword() {
         </p>
       </div>
 
-      <!-- 연결 명령어 -->
+      <!-- ① 데스크톱 채팅 앱 -->
+      <div class="rounded-lg bg-slate-50 border border-slate-200 p-4">
+        <div class="text-sm font-medium text-slate-700 mb-1">① Claude 데스크톱 앱 (채팅)</div>
+        <p class="text-xs text-slate-500 mb-2">
+          설정 → 커넥터 → <b>커스텀 커넥터 추가</b>에서, 이름은 <code class="text-slate-700">IMPM</code>,
+          <b>원격 MCP 서버 URL</b> 칸에 아래 주소를 붙여넣으세요. (OAuth 칸은 비워둡니다.)
+        </p>
+        <div class="flex items-center gap-2">
+          <code class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-mono text-slate-700 break-all">{{ mcp.chat_url }}</code>
+          <button class="btn btn-primary btn-sm shrink-0" @click="copy(mcp.chat_url, 'chat')">
+            {{ copied === 'chat' ? '복사됨' : 'URL 복사' }}
+          </button>
+        </div>
+        <p class="text-xs text-amber-600 mt-1.5">
+          ⚠ 이 주소에는 토큰이 들어 있어 <b>비밀번호와 같습니다.</b> 공유·캡처에 주의하세요.
+        </p>
+      </div>
+
+      <!-- ② Claude Code (CLI) -->
       <div>
-        <label class="field-label">연결 명령어 (PowerShell 에 붙여넣기, 최초 1회)</label>
+        <label class="field-label">② Claude Code (터미널) — PowerShell 에 붙여넣기</label>
         <div class="rounded-lg border border-slate-200 bg-slate-900 p-3">
           <code class="block text-[11px] font-mono text-slate-100 whitespace-pre-wrap break-all">{{ mcp.connect_command }}</code>
         </div>
         <div class="flex items-center gap-2 mt-2">
-          <button class="btn btn-primary btn-sm" @click="copy(mcp.connect_command, 'cmd')">
+          <button class="btn btn-secondary btn-sm" @click="copy(mcp.connect_command, 'cmd')">
             <Icon name="check" :size="14" v-if="copied === 'cmd'" />
             {{ copied === 'cmd' ? '복사됨' : '명령어 복사' }}
           </button>
-          <span class="text-xs text-slate-400">복사해서 PowerShell 에 붙여넣고 Enter</span>
         </div>
       </div>
 

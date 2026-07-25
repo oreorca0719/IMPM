@@ -327,14 +327,35 @@ async def _health(_request: Request):
     return JSONResponse({"status": "ok", "service": "impm-mcp"})
 
 
+STREAM_PATH = mcp.settings.streamable_http_path  # 보통 "/mcp"
+
+
 class BearerAuthMiddleware(BaseHTTPMiddleware):
-    """MCP 경로에 개인 Bearer 토큰 요구. /health 는 예외."""
+    """개인 토큰으로 인증. 두 가지 방식 모두 지원:
+
+    (A) Authorization: Bearer <token> 헤더  — Claude Code CLI(`--header`)용
+    (B) 경로에 토큰: `/mcp/<token>`          — 데스크톱 채팅 앱 커스텀 커넥터용
+                                              (헤더 입력란이 없어 URL 로만 인증)
+    /health 는 무인증.
+    """
 
     async def dispatch(self, request: Request, call_next):
-        if request.url.path.rstrip("/") == "/health":
+        path = request.url.path
+        if path.rstrip("/") == "/health":
             return await call_next(request)
-        auth = request.headers.get("authorization", "")
-        token = auth[7:] if auth[:7].lower() == "bearer " else ""
+
+        token = ""
+        # (B) 경로 토큰: /mcp/<token> → 토큰 추출 후 내부 라우팅용으로 /mcp 로 재작성
+        if path.startswith(STREAM_PATH + "/"):
+            token = path[len(STREAM_PATH) + 1:].split("/", 1)[0].strip()
+            request.scope["path"] = STREAM_PATH
+            request.scope["raw_path"] = STREAM_PATH.encode()
+        # (A) Authorization 헤더
+        if not token:
+            auth = request.headers.get("authorization", "")
+            if auth[:7].lower() == "bearer ":
+                token = auth[7:].strip()
+
         if not token:
             return Response("Unauthorized", status_code=401)
 
