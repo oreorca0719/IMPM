@@ -47,3 +47,12 @@ class McpResolveResult(BaseModel):
     id: int
     email: EmailStr
     name: str
+
+
+class PasswordResetResult(BaseModel):
+    """관리자가 다른 사용자 비밀번호를 초기화한 결과."""
+
+    id: int
+    email: EmailStr
+    name: str
+    temp_password: str  # 임시 비밀번호(당사자에게 안전하게 전달, 재로그인 시 변경 강제)

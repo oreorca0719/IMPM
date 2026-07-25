@@ -16,6 +16,8 @@ export const authApi = {
 
 export const userApi = {
   list: () => client.get('/users'),
+  // 관리자: 다른 사용자 비밀번호 초기화(임시 비밀번호 반환)
+  resetPassword: (uid) => client.post(`/users/${uid}/reset-password`),
 }
 
 export const projectApi = {

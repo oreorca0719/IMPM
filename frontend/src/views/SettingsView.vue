@@ -1,10 +1,34 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import { authApi } from '../api'
+import { computed, onMounted, ref } from 'vue'
+import { authApi, userApi } from '../api'
 import { useAuthStore } from '../stores/auth'
 import Icon from '../components/Icon.vue'
 
 const auth = useAuthStore()
+const isAdmin = computed(() => auth.user?.role === 'admin')
+
+// 관리자: 팀원 관리(비밀번호 초기화)
+const members = ref([])
+const resetResult = ref(null) // { name, email, temp_password }
+const resetting = ref(0)
+
+async function loadMembers() {
+  if (!isAdmin.value) return
+  members.value = (await userApi.list()).data.filter((u) => u.role !== 'bot')
+}
+
+async function resetMemberPassword(u) {
+  if (!confirm(`${u.name} 님의 비밀번호를 초기화할까요?\n임시 비밀번호가 발급되고, 다음 로그인 시 변경을 요구합니다.`)) return
+  resetting.value = u.id
+  try {
+    resetResult.value = (await userApi.resetPassword(u.id)).data
+    await loadMembers()
+  } catch (e) {
+    alert(e.response?.data?.detail || '초기화에 실패했습니다.')
+  } finally {
+    resetting.value = 0
+  }
+}
 
 // Claude(MCP) 연동 토큰
 const mcp = ref(null)
@@ -18,6 +42,7 @@ onMounted(async () => {
   } catch {
     /* 조회 실패 시 섹션만 숨김 */
   }
+  await loadMembers()
 })
 
 function masked(t) {
@@ -229,6 +254,51 @@ async function savePassword() {
           {{ rotating ? '발급 중…' : '토큰 재발급' }}
         </button>
       </div>
+    </section>
+
+    <!-- 관리자: 팀원 관리 -->
+    <section v-if="isAdmin" class="card p-5 space-y-4">
+      <div>
+        <h2 class="text-sm font-semibold text-slate-700">팀원 관리 (관리자)</h2>
+        <p class="text-xs text-slate-400 mt-1">비밀번호를 잊은 팀원의 비밀번호를 임시값으로 초기화합니다.</p>
+      </div>
+
+      <!-- 초기화 결과 -->
+      <div v-if="resetResult" class="rounded-lg border border-green-200 bg-green-50 p-4">
+        <p class="text-sm text-green-800">
+          <b>{{ resetResult.name }}</b> ({{ resetResult.email }}) 님의 임시 비밀번호가 발급되었습니다.
+        </p>
+        <div class="flex items-center gap-2 mt-2">
+          <code class="flex-1 rounded-lg border border-green-200 bg-white px-3 py-2 text-sm font-mono text-slate-800 break-all">
+            {{ resetResult.temp_password }}
+          </code>
+          <button class="btn btn-secondary btn-sm shrink-0" @click="copy(resetResult.temp_password, 'temp')">
+            {{ copied === 'temp' ? '복사됨' : '복사' }}
+          </button>
+        </div>
+        <p class="text-xs text-green-700 mt-1.5">
+          이 임시 비밀번호를 당사자에게 안전하게 전달하세요. 다음 로그인 시 본인이 새 비밀번호로 바꾸게 됩니다.
+        </p>
+      </div>
+
+      <ul class="divide-y divide-slate-100">
+        <li v-for="u in members" :key="u.id" class="flex items-center justify-between py-2.5">
+          <div class="min-w-0">
+            <span class="text-sm font-medium text-slate-800">{{ u.name }}</span>
+            <span class="text-xs text-slate-400 ml-2">{{ u.email }}</span>
+            <span v-if="u.must_change_password" class="text-[11px] text-amber-600 ml-2">변경 대기</span>
+          </div>
+          <button
+            v-if="u.id !== auth.user?.id"
+            :disabled="resetting === u.id"
+            class="btn btn-secondary btn-sm shrink-0"
+            @click="resetMemberPassword(u)"
+          >
+            {{ resetting === u.id ? '초기화 중…' : '비밀번호 초기화' }}
+          </button>
+          <span v-else class="text-xs text-slate-300">본인</span>
+        </li>
+      </ul>
     </section>
   </div>
 </template>

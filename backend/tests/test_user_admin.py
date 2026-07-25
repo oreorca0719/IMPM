@@ -65,3 +65,27 @@ async def test_seed_skips_when_users_exist(session):
     await seed.run()
     after = (await session.exec(select(func.count()).select_from(User))).one()
     assert after == before
+
+
+async def test_admin_reset_password(client, session):
+    await _mk(session, "admin@impm.team", role="admin")
+    target = await _mk(session, "mjs@impm.team", pw="oldpw123")
+    h = await _h(client, "admin@impm.team")
+
+    r = await client.post(f"/api/users/{target.id}/reset-password", headers=h)
+    assert r.status_code == 200
+    temp = r.json()["temp_password"]
+    assert len(temp) >= 8
+
+    # 옛 비번은 실패, 임시 비번으로 로그인되고 변경 강제 플래그 켜짐
+    assert (await client.post("/api/auth/login", json={"email": "mjs@impm.team", "password": "oldpw123"})).status_code == 401
+    lr = await client.post("/api/auth/login", json={"email": "mjs@impm.team", "password": temp})
+    assert lr.status_code == 200
+    assert lr.json()["user"]["must_change_password"] is True
+
+
+async def test_member_cannot_reset(client, session):
+    await _mk(session, "member@impm.team")
+    target = await _mk(session, "other@impm.team")
+    r = await client.post(f"/api/users/{target.id}/reset-password", headers=await _h(client, "member@impm.team"))
+    assert r.status_code == 403
