@@ -341,7 +341,12 @@ class BearerAuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
-        if path.rstrip("/") == "/health":
+        # 인증은 MCP 엔드포인트에만 적용한다. /health·/.well-known/*·그 외 경로는
+        # 그대로 통과시켜 라우트대로 응답(대개 404)하게 한다.
+        # 특히 OAuth 미지원 서버는 /.well-known/oauth-* 에 404 를 줘야 클라이언트가
+        # OAuth 를 강제하지 않는다(401 을 주면 데스크톱 앱이 OAuth 등록을 시도하다 실패).
+        is_mcp = path == STREAM_PATH or path.startswith(STREAM_PATH + "/")
+        if not is_mcp:
             return await call_next(request)
 
         token = ""
