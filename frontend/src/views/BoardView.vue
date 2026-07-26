@@ -2,7 +2,7 @@
 import { reactive, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import { epicApi, issueApi } from '../api'
-import { BOARD_COLUMNS } from '../constants'
+import { BOARD_COLUMNS, PRIORITIES } from '../constants'
 import { useIssueStore } from '../stores/issue'
 import { useProjectStore } from '../stores/project'
 import CreateIssueModal from '../components/CreateIssueModal.vue'
@@ -20,13 +20,45 @@ const showCreate = ref(false)
 // 컬럼별 색 점(상태 시각 구분)
 const DOT = { TODO: '#94a3b8', IN_PROGRESS: '#6366f1', DONE: '#22c55e' }
 
+// ── 정렬 ────────────────────────────────────────────────
+const SORT_OPTIONS = [
+  { key: 'manual', label: '수동 (드래그 순서)' },
+  { key: 'created_desc', label: '최신 등록순' },
+  { key: 'created_asc', label: '오래된 등록순' },
+  { key: 'priority', label: '우선순위 높은순' },
+  { key: 'due', label: '마감 임박순' },
+  { key: 'assignee', label: '담당자별' },
+  { key: 'reporter', label: '등록자별' },
+]
+const sortKey = ref(localStorage.getItem('impm_board_sort') || 'manual')
+watch(sortKey, (v) => {
+  localStorage.setItem('impm_board_sort', v)
+  rebuild()
+})
+
+const PRIO_RANK = Object.fromEntries(PRIORITIES.map((p, i) => [p.key, i])) // LOW0..URGENT3
+const uname = (id) => (id ? project.userMap[id]?.name || '' : '￿') // 미지정은 맨 뒤로
+const dueVal = (i) => (i.due_date ? new Date(i.due_date).getTime() : Infinity)
+const cmpStr = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
+
+const SORTERS = {
+  manual: (a, b) => a.board_order - b.board_order,
+  created_desc: (a, b) => cmpStr(b.created_at, a.created_at),
+  created_asc: (a, b) => cmpStr(a.created_at, b.created_at),
+  priority: (a, b) => (PRIO_RANK[b.priority] ?? -1) - (PRIO_RANK[a.priority] ?? -1) || a.board_order - b.board_order,
+  due: (a, b) => dueVal(a) - dueVal(b) || a.board_order - b.board_order,
+  assignee: (a, b) => uname(a.assignee_id).localeCompare(uname(b.assignee_id), 'ko') || a.board_order - b.board_order,
+  reporter: (a, b) => uname(a.reporter_id).localeCompare(uname(b.reporter_id), 'ko') || a.board_order - b.board_order,
+}
+
 function rebuild() {
+  const sorter = SORTERS[sortKey.value] || SORTERS.manual
   for (const col of BOARD_COLUMNS) board[col.key] = []
-  const sorted = [...issueStore.issues].sort((a, b) => a.board_order - b.board_order)
-  for (const it of sorted) {
-    if (board[it.status]) board[it.status].push(it)
-    else (board[it.status] = [it])
+  for (const it of issueStore.issues) {
+    if (!board[it.status]) board[it.status] = []
+    board[it.status].push(it)
   }
+  for (const key of Object.keys(board)) board[key].sort(sorter)
 }
 
 async function reload() {
@@ -84,11 +116,21 @@ const countOf = (key) => board[key]?.length || 0
     <header class="flex items-center justify-between mb-6">
       <div>
         <h1 class="text-xl font-semibold text-slate-900">칸반 보드</h1>
-        <p class="text-sm text-slate-400 mt-0.5">드래그로 상태를 옮기세요</p>
+        <p class="text-sm text-slate-400 mt-0.5">
+          {{ sortKey === 'manual' ? '드래그로 상태·순서를 옮기세요' : '정렬 중 — 드래그로 상태 변경은 가능합니다' }}
+        </p>
       </div>
-      <button class="btn btn-primary btn-md" @click="showCreate = true">
-        <Icon name="plus" :size="16" /> 새 이슈
-      </button>
+      <div class="flex items-center gap-2">
+        <label class="flex items-center gap-1.5 text-sm text-slate-500">
+          <span class="text-xs">정렬</span>
+          <select v-model="sortKey" class="input w-auto py-1.5 text-sm">
+            <option v-for="o in SORT_OPTIONS" :key="o.key" :value="o.key">{{ o.label }}</option>
+          </select>
+        </label>
+        <button class="btn btn-primary btn-md" @click="showCreate = true">
+          <Icon name="plus" :size="16" /> 새 이슈
+        </button>
+      </div>
     </header>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -110,6 +152,7 @@ const countOf = (key) => board[key]?.length || 0
             :list="board[col.key]"
             group="issues"
             item-key="id"
+            :sort="sortKey === 'manual'"
             class="space-y-2 h-full min-h-[120px]"
             ghost-class="opacity-40"
             @change="(e) => onChange(e, col.key)"
